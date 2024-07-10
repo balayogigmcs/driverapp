@@ -1,9 +1,8 @@
-import 'package:cccc/authentication/signup_screen.dart';
-import 'package:cccc/methods/common_methods.dart';
-import 'package:cccc/pages/homepage.dart';
-import 'package:cccc/widgets/loading_dialog.dart';
+import 'package:cccd/authentication/signup_screen.dart';
+import 'package:cccd/methods/common_methods.dart';
+import 'package:cccd/pages/dashboard.dart';
+import 'package:cccd/widgets/loading_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-//import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
@@ -15,7 +14,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  TextEditingController usernameTextEditingController = TextEditingController();
+  TextEditingController drivernameTextEditingController = TextEditingController();
   TextEditingController emailTextEditingController = TextEditingController();
   TextEditingController passwordTextEditingController = TextEditingController();
   CommonMethods cmethods = CommonMethods();
@@ -44,9 +43,9 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog(
         context: context,
         builder: (BuildContext context) =>
-            LoadingDialog(messageText: " Allowing user to Login"));
+            LoadingDialog(messageText: " Allowing driver to Login"));
 
-    final User? userFirebase = (await FirebaseAuth.instance
+    final User? driverFirebase = (await FirebaseAuth.instance
             .signInWithEmailAndPassword(
                 email: emailTextEditingController.text.trim(),
                 password: passwordTextEditingController.text.trim())
@@ -58,11 +57,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!context.mounted) return;
     Navigator.pop(context);
 
-    if(userFirebase != null){
-      DatabaseReference usersRef = FirebaseDatabase.instance.ref().child('users').child(userFirebase.uid);
-      usersRef.once().then((snap){
+    if(driverFirebase != null){
+      DatabaseReference driversRef = FirebaseDatabase.instance.ref().child('drivers').child(driverFirebase.uid);
+      driversRef.once().then((snap){
         if(snap.snapshot.value != null){
-          Navigator.push(context, MaterialPageRoute(builder: (BuildContext context) => Homepage()));
+          Navigator.push(context, MaterialPageRoute(builder: (BuildContext context) => Dashboard()));
         }
         else{
           cmethods.displaySnackbar('Account doesn\'t exist', context);
@@ -79,9 +78,11 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.all(10),
           child: Column(
             children: [
-              Image.asset("assets/images/logo.png"),
+               const SizedBox(height: 30,),
+              Image.asset("assets/images/uberexec.png"),
+              const SizedBox(height: 60,),
               const Text(
-                'Login As a User',
+                'Login As a Driver',
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
               ),
               Padding(

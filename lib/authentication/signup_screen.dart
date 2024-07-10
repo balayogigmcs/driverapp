@@ -1,7 +1,7 @@
-import 'package:cccc/authentication/login_screen.dart';
-import 'package:cccc/methods/common_methods.dart';
-import 'package:cccc/pages/homepage.dart';
-import 'package:cccc/widgets/loading_dialog.dart';
+import 'package:cccd/authentication/login_screen.dart';
+import 'package:cccd/methods/common_methods.dart';
+import 'package:cccd/pages/dashboard.dart';
+import 'package:cccd/widgets/loading_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -15,10 +15,15 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  TextEditingController usernameTextEditingController = TextEditingController();
+  TextEditingController drivernameTextEditingController =
+      TextEditingController();
   TextEditingController emailTextEditingController = TextEditingController();
   TextEditingController passwordTextEditingController = TextEditingController();
   TextEditingController phoneTextEditingController = TextEditingController();
+  TextEditingController carmodelTextEditingController = TextEditingController();
+  TextEditingController carNumberTextEditingController =
+      TextEditingController();
+  TextEditingController carColorEditingController = TextEditingController();
   CommonMethods cmethods = CommonMethods();
 
   checkIfNetworkAvailable() {
@@ -29,9 +34,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
   signUpFormValidation() {
     String email = emailTextEditingController.text.trim();
-    if (usernameTextEditingController.text.trim().length < 4) {
+    if (drivernameTextEditingController.text.trim().length < 4) {
       cmethods.displaySnackbar(
-          'Your Username must be atleast 4 characters', context);
+          'Your name must be atleast 4 characters', context);
     } else if (phoneTextEditingController.text.trim().length < 10) {
       cmethods.displaySnackbar(
           'Your Phone number must be atleast 10 characters', context);
@@ -41,17 +46,17 @@ class _SignupScreenState extends State<SignupScreen> {
       cmethods.displaySnackbar(
           'Your Password must be atleast 6 characters', context);
     } else {
-      registerNewUser();
+      registerNewdriver();
     }
   }
 
-  registerNewUser() async {
+  registerNewdriver() async {
     showDialog(
         context: context,
         builder: (BuildContext context) =>
             LoadingDialog(messageText: " Registering Account"));
 
-    final User? userFirebase = (await FirebaseAuth.instance
+    final User? driverFirebase = (await FirebaseAuth.instance
             .createUserWithEmailAndPassword(
                 email: emailTextEditingController.text.trim(),
                 password: passwordTextEditingController.text.trim())
@@ -63,19 +68,21 @@ class _SignupScreenState extends State<SignupScreen> {
     if (!context.mounted) return;
     Navigator.pop(context);
 
-    DatabaseReference usersRef =
-        FirebaseDatabase.instance.ref().child('users').child(userFirebase!.uid);
+    DatabaseReference driversRef = FirebaseDatabase.instance
+        .ref()
+        .child('drivers')
+        .child(driverFirebase!.uid);
 
-    Map userDataMap = {
-      'name': usernameTextEditingController.text.trim(),
+    Map driverDataMap = {
+      'name': drivernameTextEditingController.text.trim(),
       'email': emailTextEditingController.text.trim(),
       'phone': phoneTextEditingController.text.trim(),
-      'uid': userFirebase.uid,
+      'uid': driverFirebase.uid,
       'blockStatus': "no"
     };
-    usersRef.set(userDataMap);
+    driversRef.set(driverDataMap);
     Navigator.push(context,
-        MaterialPageRoute(builder: (BuildContext context) => Homepage()));
+        MaterialPageRoute(builder: (BuildContext context) => Dashboard()));
   }
 
   @override
@@ -86,20 +93,28 @@ class _SignupScreenState extends State<SignupScreen> {
           padding: const EdgeInsets.all(10),
           child: Column(
             children: [
-              Image.asset("assets/images/logo.png"),
-              const Text(
-                'Create User\'s Account',
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+              const SizedBox(height: 30,),
+              const CircleAvatar(
+                radius: 80,
+                backgroundImage: AssetImage("assets/images/avatarman.png"),
+              ),
+              const SizedBox(height: 20,),
+              GestureDetector(
+                onTap: () {},
+                child: const Text(
+                  'Choose Image',
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.all(5),
                 child: Column(
                   children: [
                     TextField(
-                      controller: usernameTextEditingController,
+                      controller: drivernameTextEditingController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
-                          labelText: ' username',
+                          labelText: ' Your name',
                           labelStyle: TextStyle(fontSize: 14)),
                     ),
                     const SizedBox(
@@ -109,7 +124,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       controller: phoneTextEditingController,
                       keyboardType: TextInputType.phone,
                       decoration: const InputDecoration(
-                          labelText: 'Phone number',
+                          labelText: 'Your Phone number',
                           labelStyle: TextStyle(fontSize: 14)),
                     ),
                     const SizedBox(
@@ -119,7 +134,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       controller: emailTextEditingController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
-                          labelText: ' email',
+                          labelText: 'Your email',
                           labelStyle: TextStyle(fontSize: 14)),
                     ),
                     const SizedBox(
@@ -130,7 +145,37 @@ class _SignupScreenState extends State<SignupScreen> {
                       obscureText: true,
                       keyboardType: TextInputType.text,
                       decoration: const InputDecoration(
-                          labelText: ' password',
+                          labelText: 'Your password',
+                          labelStyle: TextStyle(fontSize: 14)),
+                    ),
+                    const SizedBox(
+                      height: 22,
+                    ),
+                    TextField(
+                      controller: carmodelTextEditingController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                          labelText: ' Your Car Model',
+                          labelStyle: TextStyle(fontSize: 14)),
+                    ),
+                    const SizedBox(
+                      height: 22,
+                    ),
+                    TextField(
+                      controller: carNumberTextEditingController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                          labelText: ' Your Car Number',
+                          labelStyle: TextStyle(fontSize: 14)),
+                    ),
+                    const SizedBox(
+                      height: 22,
+                    ),
+                    TextField(
+                      controller: carColorEditingController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                          labelText: ' Your Car Color',
                           labelStyle: TextStyle(fontSize: 14)),
                     ),
                     const SizedBox(
