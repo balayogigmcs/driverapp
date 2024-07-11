@@ -1,11 +1,15 @@
+import 'dart:io';
+
 import 'package:cccd/authentication/login_screen.dart';
 import 'package:cccd/methods/common_methods.dart';
 import 'package:cccd/pages/dashboard.dart';
 import 'package:cccd/widgets/loading_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:image_picker/image_picker.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -20,16 +24,22 @@ class _SignupScreenState extends State<SignupScreen> {
   TextEditingController emailTextEditingController = TextEditingController();
   TextEditingController passwordTextEditingController = TextEditingController();
   TextEditingController phoneTextEditingController = TextEditingController();
-  TextEditingController carmodelTextEditingController = TextEditingController();
-  TextEditingController carNumberTextEditingController =
+  TextEditingController vehiclemodelTextEditingController = TextEditingController();
+  TextEditingController vehicleNumberTextEditingController =
       TextEditingController();
-  TextEditingController carColorEditingController = TextEditingController();
+  TextEditingController vehicleColorEditingController = TextEditingController();
   CommonMethods cmethods = CommonMethods();
+  XFile? imageFile;
+  String urlOfUploadedImage = "";
 
   checkIfNetworkAvailable() {
     cmethods.checkConnectivity(context);
 
-    signUpFormValidation();
+    if (imageFile != null) {
+      signUpFormValidation();
+    } else {
+      cmethods.displaySnackbar("Please choose image", context);
+    }
   }
 
   signUpFormValidation() {
@@ -45,9 +55,31 @@ class _SignupScreenState extends State<SignupScreen> {
     } else if (passwordTextEditingController.text.trim().length < 6) {
       cmethods.displaySnackbar(
           'Your Password must be atleast 6 characters', context);
+    } else if (vehiclemodelTextEditingController.text.trim().isEmpty) {
+      cmethods.displaySnackbar('Please enter Car Model', context);
+    } else if (vehicleNumberTextEditingController.text.trim().isEmpty) {
+      cmethods.displaySnackbar('Please enter Car Number', context);
+    } else if (vehicleColorEditingController.text.trim().isEmpty) {
+      cmethods.displaySnackbar('Please enter Car Color', context);
     } else {
-      registerNewdriver();
+      uploadImageToStorage();
     }
+  }
+
+  uploadImageToStorage() async {
+    String imageIdName = DateTime.now().millisecondsSinceEpoch.toString();
+    Reference referenceImage =
+        FirebaseStorage.instance.ref().child("images").child(imageIdName);
+
+    UploadTask uploadTask = referenceImage.putFile(File(imageFile!.path));
+    TaskSnapshot snapshot = await uploadTask;
+    urlOfUploadedImage = await snapshot.ref.getDownloadURL();
+
+    setState(() {
+      urlOfUploadedImage;
+    });
+
+    registerNewdriver();
   }
 
   registerNewdriver() async {
@@ -73,7 +105,15 @@ class _SignupScreenState extends State<SignupScreen> {
         .child('drivers')
         .child(driverFirebase!.uid);
 
+    Map carDataInfo = {
+      'car-model' : vehiclemodelTextEditingController.text.trim(),
+      'car-number' : vehicleNumberTextEditingController.text.trim(),
+      'car-color': vehicleColorEditingController.text.trim()
+    };
+
     Map driverDataMap = {
+      "photo" : urlOfUploadedImage,
+      'car details' : carDataInfo,
       'name': drivernameTextEditingController.text.trim(),
       'email': emailTextEditingController.text.trim(),
       'phone': phoneTextEditingController.text.trim(),
@@ -85,6 +125,17 @@ class _SignupScreenState extends State<SignupScreen> {
         MaterialPageRoute(builder: (BuildContext context) => Dashboard()));
   }
 
+  getImageFromGallery() async {
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        imageFile = pickedFile;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,14 +144,32 @@ class _SignupScreenState extends State<SignupScreen> {
           padding: const EdgeInsets.all(10),
           child: Column(
             children: [
-              const SizedBox(height: 30,),
-              const CircleAvatar(
-                radius: 80,
-                backgroundImage: AssetImage("assets/images/avatarman.png"),
+              const SizedBox(
+                height: 30,
               ),
-              const SizedBox(height: 20,),
+              imageFile == null
+                  ? const CircleAvatar(
+                      radius: 80,
+                      backgroundImage:
+                          AssetImage("assets/images/avatarman.png"),
+                    )
+                  : Container(
+                      width: 180,
+                      height: 180,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey,
+                          image: DecorationImage(
+                              fit: BoxFit.fitHeight,
+                              image: FileImage(File(imageFile!.path)))),
+                    ),
+              const SizedBox(
+                height: 20,
+              ),
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  getImageFromGallery();
+                },
                 child: const Text(
                   'Choose Image',
                   style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
@@ -152,7 +221,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       height: 22,
                     ),
                     TextField(
-                      controller: carmodelTextEditingController,
+                      controller: vehiclemodelTextEditingController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
                           labelText: ' Your Car Model',
@@ -162,7 +231,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       height: 22,
                     ),
                     TextField(
-                      controller: carNumberTextEditingController,
+                      controller: vehicleNumberTextEditingController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
                           labelText: ' Your Car Number',
@@ -172,7 +241,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       height: 22,
                     ),
                     TextField(
-                      controller: carColorEditingController,
+                      controller: vehicleColorEditingController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
                           labelText: ' Your Car Color',
