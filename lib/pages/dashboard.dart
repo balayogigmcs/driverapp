@@ -1,11 +1,8 @@
-// import 'dart:async';
-// import 'dart:convert';
-// import 'dart:typed_data';
-
+import 'package:cccd/pages/earning_page.dart';
+import 'package:cccd/pages/home_page.dart';
+import 'package:cccd/pages/profile_page.dart';
+import 'package:cccd/pages/trips_page.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart';
-// import 'package:geolocator/geolocator.dart';
-// import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({Key? key}) : super(key: key);
@@ -14,68 +11,61 @@ class Dashboard extends StatefulWidget {
   State<Dashboard> createState() => _DashboardState();
 }
 
-class _DashboardState extends State<Dashboard> {
-  // final Completer<GoogleMapController> googleMapCompleterController =
-  //     Completer<GoogleMapController>();
-  // GoogleMapController? controllerGoogleMap;
-  // Position? currentPositionOfUser;
+class _DashboardState extends State<Dashboard>
+    with SingleTickerProviderStateMixin {
+  TabController? controller;
 
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   getCurrentLiveLocationOfUser();
-  // }
+  int indexSelected = 0;
 
-  // void updateMapTheme(GoogleMapController controller) {
-  //   getJsonFileFromThemes('themes/dark_style.json')
-  //       .then((value) => setGoogleMapStyle(value, controller));
-  // }
+  onBarItemClicked(int i) {
+    setState(() {
+      indexSelected = i;
+      controller!.index = indexSelected;
+    });
+  }
 
-  // Future<String> getJsonFileFromThemes(String path) async {
-  //   ByteData byteData = await rootBundle.load(path);
-  //   var list = byteData.buffer.asUint8List(
-  //       byteData.offsetInBytes, byteData.lengthInBytes);
-  //   return utf8.decode(list);
-  // }
+  @override
+  void initState() {
+    super.initState();
 
-  // void setGoogleMapStyle(String googleMapStyle, GoogleMapController controller) {
-  //   controller.setMapStyle(googleMapStyle);
-  // }
+    controller = TabController(length: 4, vsync: this);
+  }
 
-  // getCurrentLiveLocationOfUser() async {
-  //   Position positionOfUser = await Geolocator.getCurrentPosition(
-  //       desiredAccuracy: LocationAccuracy.bestForNavigation);
-  //   currentPositionOfUser = positionOfUser;
-
-  //   LatLng positionOfUserInLatLng =
-  //       LatLng(currentPositionOfUser!.latitude, currentPositionOfUser!.longitude);
-  //   CameraPosition cameraPosition =
-  //       CameraPosition(target: positionOfUserInLatLng, zoom: 15);
-  //   controllerGoogleMap!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
-  // }
+  @override
+  void dispose() {
+    controller!.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Text('DashBoard'),
-      // body: Stack(
-      //   children: [
-      //     GoogleMap(
-      //       mapType: MapType.normal,
-      //       myLocationButtonEnabled: true,
-      //       myLocationEnabled: true,
-      //       initialCameraPosition: CameraPosition(
-      //         target: LatLng(37.7749, -122.4194), // Default to San Francisco
-      //         zoom: 15,
-      //       ),
-      //       onMapCreated: (GoogleMapController mapController) {
-      //         controllerGoogleMap = mapController;
-      //         updateMapTheme(controllerGoogleMap!);
-      //         googleMapCompleterController.complete(controllerGoogleMap);
-      //       },
-      //     ),
-      //   ],
-      // ),
+      body: TabBarView(
+          physics: const NeverScrollableScrollPhysics(),
+          controller: controller,
+          children:  [
+            HomePage(),
+            EarningPage(),
+            TripsPage(),
+            ProfilePage(),
+          ]),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.credit_card), label: "Earnings"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.account_tree), label: "Trips"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile")
+        ],
+        currentIndex: indexSelected,
+        unselectedItemColor: Colors.grey,
+        selectedItemColor: Colors.pink,
+        showSelectedLabels: true,
+        selectedLabelStyle: const TextStyle(fontSize: 12),
+        type: BottomNavigationBarType.fixed,
+        onTap: onBarItemClicked,
+      ),
     );
   }
 }
