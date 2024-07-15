@@ -1,9 +1,12 @@
 import 'dart:async';
 
+
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 String userName = "";
+
+
 String googleMapKey = "AIzaSyDCF3-Nl94jUPeUuDdpjT92DO3IjZF655o";
 
 const CameraPosition googlePlexInitialPositon = CameraPosition(
@@ -12,3 +15,5 @@ const CameraPosition googlePlexInitialPositon = CameraPosition(
   );
 
 StreamSubscription<Position>? positionStreamHomePage;
+
+int driverTripRequestTimeout  = 20;

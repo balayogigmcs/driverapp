@@ -1,6 +1,12 @@
+import 'package:cccd/models/trip_details.dart';
+import 'package:cccd/widgets/loading_dialog.dart';
+import 'package:cccd/widgets/notification_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class PushNotificationSystem {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
@@ -28,32 +34,72 @@ class PushNotificationSystem {
     }
   }
 
-  void startListeningForNewNotifications() {
+  void startListeningForNewNotifications(BuildContext context) {
     // Handle initial message when the app is terminated
-    FirebaseMessaging.instance.getInitialMessage().then((message) {
-      if (message != null) {
-        _handleMessage(message);
+    FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? messageRemote) {
+      if (messageRemote != null) {
+         String tripID = messageRemote.data["tripID"];
+
+        retrieveTripRequestInfo(tripID, context);
       }
     });
 
     // Handle incoming messages when the app is in the foreground
-    FirebaseMessaging.onMessage.listen((message) {
-      _handleMessage(message);
+    FirebaseMessaging.onMessage.listen((RemoteMessage? messageRemote) {
+      if (messageRemote != null) {
+         String tripID = messageRemote.data["tripID"];
+
+        retrieveTripRequestInfo(tripID, context);
+      }
     });
 
     // Handle incoming messages when the app is in the background and opened
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      _handleMessage(message);
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage? messageRemote) {
+      if (messageRemote != null) {
+         String tripID = messageRemote.data["tripID"];
+
+        retrieveTripRequestInfo(tripID, context);
+      }
     });
   }
 
-  void _handleMessage(RemoteMessage? message) {
-    if (message != null) {
-      String? tripID = message.data["tripID"];
-      if (tripID != null) {
-        // Process tripID, e.g., navigate to trip details page
-        print("Received trip ID: $tripID");
-      }
-    }
+
+  retrieveTripRequestInfo(String tripID, BuildContext context) {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) =>
+            LoadingDialog(messageText: "getting details ...."));
+
+    DatabaseReference tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").child(tripID);
+
+    tripRequestRef.once().then((dataSnapshot){
+      Navigator.pop(context);
+
+      // play Notification sound
+
+      TripDetails tripDetailsInfo = TripDetails();
+
+      double pickUpLat = double.parse((dataSnapshot.snapshot.value! as Map)["pickUpLatLng"]["latitude"]);
+      double pickUpLng =  double.parse((dataSnapshot.snapshot.value! as Map)["pickUpLatLng"]["longitude"]);
+      
+      tripDetailsInfo.pickUpLatLng = LatLng(pickUpLat, pickUpLng);
+
+      tripDetailsInfo.pickUpAddress =  (dataSnapshot.snapshot.value! as Map)["pickUpAddress"];
+
+      double dropOffLat = double.parse((dataSnapshot.snapshot.value! as Map)["dropOffLatLng"]["latitude"]);
+      double dropOffLng = double.parse((dataSnapshot.snapshot.value! as Map)["dropOffLatLng"]["longitude"]);
+
+      tripDetailsInfo.dropOffLatLng  = LatLng(dropOffLat, dropOffLng);
+
+      tripDetailsInfo.dropOffAddress =  (dataSnapshot.snapshot.value! as Map)["dropOffAddress"];
+
+      tripDetailsInfo.userName =  (dataSnapshot.snapshot.value! as Map)["userName"];
+      tripDetailsInfo.userPhone = (dataSnapshot.snapshot.value! as Map)["userPhone"];
+
+      showDialog(context: context, builder: (BuildContext context) => NotificationDialog(tripDetailsInfo : tripDetailsInfo));
+
+
+    });
   }
 }
