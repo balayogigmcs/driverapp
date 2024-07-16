@@ -48,6 +48,9 @@ dependencies:
   flutter_geofire: ^2.0.3
   firebase_messaging: ^15.0.3
   assets_audio_player: ^3.1.1
+  flutter_polyline_points: ^2.1.0
+  loading_animation_widget: ^1.2.1
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:
@@ -77,7 +80,9 @@ flutter:
     - assets/images/avatarman.png
     - assets/images/initial.png
     - assets/images/final.png
+    - assets/images/tracking.png
     - assets/audio/
+    - themes/
   # assets:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg

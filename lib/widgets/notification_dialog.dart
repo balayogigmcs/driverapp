@@ -1,7 +1,12 @@
 import 'dart:async';
 import 'package:cccd/global/global_var.dart';
+import 'package:cccd/methods/common_methods.dart';
 import 'package:cccd/models/trip_details.dart';
+import 'package:cccd/pages/new_trip_page.dart';
+import 'package:cccd/widgets/loading_dialog.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class NotificationDialog extends StatefulWidget {
   TripDetails? tripDetailsInfo;
@@ -14,6 +19,7 @@ class NotificationDialog extends StatefulWidget {
 
 class _NotificationDialogState extends State<NotificationDialog> {
   String tripRequestStatus = "";
+  CommonMethods cMethods = CommonMethods();
 
   cancelNotificationRequestAfter20Sec(BuildContext context) {
     const oneTickPerSecond = Duration(seconds: 1);
@@ -30,6 +36,52 @@ class _NotificationDialogState extends State<NotificationDialog> {
         Navigator.pop(context);
         timer.cancel();
         driverTripRequestTimeout = 20;
+      }
+    });
+  }
+
+  checkAvailablityOfTripRequest(BuildContext context) async {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) =>
+            LoadingDialog(messageText: 'Please wait ....'));
+
+    DatabaseReference driverTripStatusRef = FirebaseDatabase.instance
+        .ref()
+        .child("drivers")
+        .child(FirebaseAuth.instance.currentUser!.uid)
+        .child("newTripStatus");
+
+    await driverTripStatusRef.once().then((snap) {
+      Navigator.pop(context);
+      Navigator.pop(context);
+
+      String newTripStatusValue = "";
+      if (snap.snapshot.value != null) {
+        newTripStatusValue = snap.snapshot.value.toString();
+      } else {
+        cMethods.displaySnackbar("Trip Request Not found", context);
+      }
+
+      if (newTripStatusValue == widget.tripDetailsInfo!.tripID) {
+        driverTripStatusRef.set("accepted");
+
+        // disable homepage location updates
+
+        cMethods.turnOffLocationUpdatesFromHomepage();
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (BuildContext context) =>
+                    NewTripPage(newTripDetailInfo: widget.tripDetailsInfo)));
+      } else if (newTripStatusValue == "cancelled") {
+        cMethods.displaySnackbar(
+            "Trip request has been Cancelled by User", context);
+      } else if (newTripStatusValue == "timeout") {
+        cMethods.displaySnackbar("Trip request Timeout", context);
+      } else {
+        cMethods.displaySnackbar("Trip request removed , Not Found", context);
       }
     });
   }
@@ -167,6 +219,7 @@ class _NotificationDialogState extends State<NotificationDialog> {
                         child: ElevatedButton(
                             onPressed: () {
                               Navigator.pop(context);
+                              audioPlayer.stop();
                             },
                             style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.pink),
@@ -180,9 +233,12 @@ class _NotificationDialogState extends State<NotificationDialog> {
                     Expanded(
                         child: ElevatedButton(
                             onPressed: () {
+                              audioPlayer.stop();
                               setState(() {
                                 tripRequestStatus = "accepted";
                               });
+
+                              checkAvailablityOfTripRequest(context);
                             },
                             style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green),

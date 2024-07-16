@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:cccd/global/global_var.dart';
+import 'package:cccd/methods/map_theme_methods.dart';
 import 'package:cccd/push_notification.dart/push_notification_system.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_geofire/flutter_geofire.dart';
@@ -23,11 +22,12 @@ class _HomePageState extends State<HomePage> {
   final Completer<GoogleMapController> googleMapCompleterController =
       Completer<GoogleMapController>();
   GoogleMapController? controllerGoogleMap;
-  Position? currentPositionOfUser;
+  Position? currentPositionOfDriver;
   Color colorToShow = Colors.green;
   String titleToShow = "GO ONLINE NOW";
   bool isDriverAvailable = false;
   DatabaseReference? newTripRequestReference;
+  MapThemeMethods themeMethods = MapThemeMethods();
 
   @override
   void initState() {
@@ -37,30 +37,15 @@ class _HomePageState extends State<HomePage> {
     initializePushNotificationSystem();
   }
 
-  void updateMapTheme(GoogleMapController controller) {
-    getJsonFileFromThemes('themes/dark_style.json')
-        .then((value) => setGoogleMapStyle(value, controller));
-  }
-
-  Future<String> getJsonFileFromThemes(String path) async {
-    ByteData byteData = await rootBundle.load(path);
-    var list = byteData.buffer
-        .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes);
-    return utf8.decode(list);
-  }
-
-  void setGoogleMapStyle(
-      String googleMapStyle, GoogleMapController controller) {
-    controller.setMapStyle(googleMapStyle);
-  }
 
   getCurrentLiveLocationOfDriver() async {
     Position positionOfUser = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.bestForNavigation);
-    currentPositionOfUser = positionOfUser;
+    currentPositionOfDriver = positionOfUser;
+    driverCurrentPosition = currentPositionOfDriver;
 
     LatLng positionOfUserInLatLng = LatLng(
-        currentPositionOfUser!.latitude, currentPositionOfUser!.longitude);
+        currentPositionOfDriver!.latitude, currentPositionOfDriver!.longitude);
     CameraPosition cameraPosition =
         CameraPosition(target: positionOfUserInLatLng, zoom: 15);
     controllerGoogleMap!
@@ -72,7 +57,7 @@ class _HomePageState extends State<HomePage> {
     Geofire.initialize("onlineDrivers");
 
     Geofire.setLocation(FirebaseAuth.instance.currentUser!.uid,
-        currentPositionOfUser!.latitude, currentPositionOfUser!.longitude);
+        currentPositionOfDriver!.latitude, currentPositionOfDriver!.longitude);
 
     newTripRequestReference = FirebaseDatabase.instance
         .ref()
@@ -87,15 +72,17 @@ class _HomePageState extends State<HomePage> {
   setAndGetLocationUpdates() {
     positionStreamHomePage =
         Geolocator.getPositionStream().listen((Position position) {
-      currentPositionOfUser = position;
+      currentPositionOfDriver = position;
 
       if (isDriverAvailable == true) {
-        Geofire.setLocation(FirebaseAuth.instance.currentUser!.uid,
-            currentPositionOfUser!.latitude, currentPositionOfUser!.longitude);
+        Geofire.setLocation(
+            FirebaseAuth.instance.currentUser!.uid,
+            currentPositionOfDriver!.latitude,
+            currentPositionOfDriver!.longitude);
       }
 
-      LatLng positionLatLng = LatLng(
-          currentPositionOfUser!.latitude, currentPositionOfUser!.longitude);
+      LatLng positionLatLng = LatLng(currentPositionOfDriver!.latitude,
+          currentPositionOfDriver!.longitude);
 
       controllerGoogleMap!
           .animateCamera(CameraUpdate.newLatLng(positionLatLng));
@@ -129,14 +116,13 @@ class _HomePageState extends State<HomePage> {
             mapType: MapType.normal,
             myLocationButtonEnabled: true,
             myLocationEnabled: true,
-            initialCameraPosition: const CameraPosition(
-              target: LatLng(37.7749, -122.4194), // Default to San Francisco
-              zoom: 15,
-            ),
+            initialCameraPosition: googlePlexInitialPositon,
             onMapCreated: (GoogleMapController mapController) {
               controllerGoogleMap = mapController;
-              updateMapTheme(controllerGoogleMap!);
+              themeMethods.updateMapTheme(controllerGoogleMap!);
               googleMapCompleterController.complete(controllerGoogleMap);
+
+              getCurrentLiveLocationOfDriver();
             },
           ),
 
@@ -279,5 +265,12 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty<Position?>(
+        'currentPositionOfDriver', currentPositionOfDriver));
   }
 }

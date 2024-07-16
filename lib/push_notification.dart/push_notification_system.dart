@@ -1,3 +1,5 @@
+import 'package:assets_audio_player/assets_audio_player.dart';
+import 'package:cccd/global/global_var.dart';
 import 'package:cccd/models/trip_details.dart';
 import 'package:cccd/widgets/loading_dialog.dart';
 import 'package:cccd/widgets/notification_dialog.dart';
@@ -36,9 +38,11 @@ class PushNotificationSystem {
 
   void startListeningForNewNotifications(BuildContext context) {
     // Handle initial message when the app is terminated
-    FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? messageRemote) {
+    FirebaseMessaging.instance
+        .getInitialMessage()
+        .then((RemoteMessage? messageRemote) {
       if (messageRemote != null) {
-         String tripID = messageRemote.data["tripID"];
+        String tripID = messageRemote.data["tripID"];
 
         retrieveTripRequestInfo(tripID, context);
       }
@@ -47,7 +51,7 @@ class PushNotificationSystem {
     // Handle incoming messages when the app is in the foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage? messageRemote) {
       if (messageRemote != null) {
-         String tripID = messageRemote.data["tripID"];
+        String tripID = messageRemote.data["tripID"];
 
         retrieveTripRequestInfo(tripID, context);
       }
@@ -56,13 +60,12 @@ class PushNotificationSystem {
     // Handle incoming messages when the app is in the background and opened
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage? messageRemote) {
       if (messageRemote != null) {
-         String tripID = messageRemote.data["tripID"];
+        String tripID = messageRemote.data["tripID"];
 
         retrieveTripRequestInfo(tripID, context);
       }
     });
   }
-
 
   retrieveTripRequestInfo(String tripID, BuildContext context) {
     showDialog(
@@ -71,35 +74,51 @@ class PushNotificationSystem {
         builder: (BuildContext context) =>
             LoadingDialog(messageText: "getting details ...."));
 
-    DatabaseReference tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").child(tripID);
+    DatabaseReference tripRequestRef =
+        FirebaseDatabase.instance.ref().child("tripRequests").child(tripID);
 
-    tripRequestRef.once().then((dataSnapshot){
+    tripRequestRef.once().then((dataSnapshot) {
       Navigator.pop(context);
 
       // play Notification sound
 
+      audioPlayer.open(Audio("assets/audio/alert_sound.mp3"));
+
+
+
       TripDetails tripDetailsInfo = TripDetails();
 
-      double pickUpLat = double.parse((dataSnapshot.snapshot.value! as Map)["pickUpLatLng"]["latitude"]);
-      double pickUpLng =  double.parse((dataSnapshot.snapshot.value! as Map)["pickUpLatLng"]["longitude"]);
-      
+      double pickUpLat = double.parse(
+          (dataSnapshot.snapshot.value! as Map)["pickUpLatLng"]["latitude"]);
+      double pickUpLng = double.parse(
+          (dataSnapshot.snapshot.value! as Map)["pickUpLatLng"]["longitude"]);
+
       tripDetailsInfo.pickUpLatLng = LatLng(pickUpLat, pickUpLng);
 
-      tripDetailsInfo.pickUpAddress =  (dataSnapshot.snapshot.value! as Map)["pickUpAddress"];
+      tripDetailsInfo.pickUpAddress =
+          (dataSnapshot.snapshot.value! as Map)["pickUpAddress"];
 
-      double dropOffLat = double.parse((dataSnapshot.snapshot.value! as Map)["dropOffLatLng"]["latitude"]);
-      double dropOffLng = double.parse((dataSnapshot.snapshot.value! as Map)["dropOffLatLng"]["longitude"]);
+      double dropOffLat = double.parse(
+          (dataSnapshot.snapshot.value! as Map)["dropOffLatLng"]["latitude"]);
+      double dropOffLng = double.parse(
+          (dataSnapshot.snapshot.value! as Map)["dropOffLatLng"]["longitude"]);
 
-      tripDetailsInfo.dropOffLatLng  = LatLng(dropOffLat, dropOffLng);
+      tripDetailsInfo.dropOffLatLng = LatLng(dropOffLat, dropOffLng);
 
-      tripDetailsInfo.dropOffAddress =  (dataSnapshot.snapshot.value! as Map)["dropOffAddress"];
+      tripDetailsInfo.dropOffAddress =
+          (dataSnapshot.snapshot.value! as Map)["dropOffAddress"];
 
-      tripDetailsInfo.userName =  (dataSnapshot.snapshot.value! as Map)["userName"];
-      tripDetailsInfo.userPhone = (dataSnapshot.snapshot.value! as Map)["userPhone"];
+      tripDetailsInfo.userName =
+          (dataSnapshot.snapshot.value! as Map)["userName"];
+      tripDetailsInfo.userPhone =
+          (dataSnapshot.snapshot.value! as Map)["userPhone"];
 
-      showDialog(context: context, builder: (BuildContext context) => NotificationDialog(tripDetailsInfo : tripDetailsInfo));
+      tripDetailsInfo.tripID = tripID;
 
-
+      showDialog(
+          context: context,
+          builder: (BuildContext context) =>
+              NotificationDialog(tripDetailsInfo: tripDetailsInfo));
     });
   }
 }
