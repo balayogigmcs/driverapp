@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ffi';
 import 'package:cccd/global/global_var.dart';
 import 'package:cccd/methods/map_theme_methods.dart';
 import 'package:cccd/push_notification.dart/push_notification_system.dart';
@@ -28,15 +29,6 @@ class _HomePageState extends State<HomePage> {
   bool isDriverAvailable = false;
   DatabaseReference? newTripRequestReference;
   MapThemeMethods themeMethods = MapThemeMethods();
-
-  @override
-  void initState() {
-    super.initState();
-    getCurrentLiveLocationOfDriver();
-
-    initializePushNotificationSystem();
-  }
-
 
   getCurrentLiveLocationOfDriver() async {
     Position positionOfUser = await Geolocator.getCurrentPosition(
@@ -105,6 +97,32 @@ class _HomePageState extends State<HomePage> {
     notificationSystem.startListeningForNewNotifications(context);
   }
 
+  retriveCurrentDriverInfo() async {
+    await FirebaseDatabase.instance
+        .ref()
+        .child("drivers")
+        .child(FirebaseAuth.instance.currentUser!.uid)
+        .once()
+        .then((snap) {
+      driverName = (snap.snapshot.value as Map)["name"];
+      driverPhone = (snap.snapshot.value as Map)["phone"];
+      driverPhoto = (snap.snapshot.value as Map)["photo"];
+      carColor = (snap.snapshot.value as Map)["car details"]["car-color"];
+      carModel = (snap.snapshot.value as Map)["car details"]["car-model"];
+      carNumber = (snap.snapshot.value as Map)["car details"]["car-number"];
+    });
+
+    initializePushNotificationSystem();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getCurrentLiveLocationOfDriver();
+
+    retriveCurrentDriverInfo();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,7 +137,7 @@ class _HomePageState extends State<HomePage> {
             initialCameraPosition: googlePlexInitialPositon,
             onMapCreated: (GoogleMapController mapController) {
               controllerGoogleMap = mapController;
-              themeMethods.updateMapTheme(controllerGoogleMap!);
+              // themeMethods.updateMapTheme(controllerGoogleMap!);
               googleMapCompleterController.complete(controllerGoogleMap);
 
               getCurrentLiveLocationOfDriver();

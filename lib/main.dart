@@ -1,5 +1,5 @@
 import 'package:cccd/authentication/login_screen.dart';
-import 'package:cccd/pages/home_page.dart';
+import 'package:cccd/pages/dashboard.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Drivers App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(scaffoldBackgroundColor: Colors.black),
       home: FutureBuilder(
@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
             if (FirebaseAuth.instance.currentUser == null) {
               return LoginScreen();
             } else {
-              return HomePage();
+              return Dashboard();
             }
           }
         },

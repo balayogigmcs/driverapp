@@ -1,4 +1,5 @@
 import 'package:cccd/authentication/signup_screen.dart';
+import 'package:cccd/global/global_var.dart';
 import 'package:cccd/methods/common_methods.dart';
 import 'package:cccd/pages/dashboard.dart';
 import 'package:cccd/widgets/loading_dialog.dart';
@@ -14,7 +15,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  TextEditingController drivernameTextEditingController = TextEditingController();
+  TextEditingController drivernameTextEditingController =
+      TextEditingController();
   TextEditingController emailTextEditingController = TextEditingController();
   TextEditingController passwordTextEditingController = TextEditingController();
   CommonMethods cmethods = CommonMethods();
@@ -39,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  signInForm() async{
+  signInForm() async {
     showDialog(
         context: context,
         builder: (BuildContext context) =>
@@ -57,13 +59,26 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!context.mounted) return;
     Navigator.pop(context);
 
-    if(driverFirebase != null){
-      DatabaseReference driversRef = FirebaseDatabase.instance.ref().child('drivers').child(driverFirebase.uid);
-      driversRef.once().then((snap){
-        if(snap.snapshot.value != null){
-          Navigator.push(context, MaterialPageRoute(builder: (BuildContext context) => Dashboard()));
-        }
-        else{
+    if (driverFirebase != null) {
+      DatabaseReference driversRef = FirebaseDatabase.instance
+          .ref()
+          .child('drivers')
+          .child(driverFirebase.uid);
+      driversRef.once().then((snap) {
+        if (snap.snapshot.value != null) {
+          if ((snap.snapshot.value as Map)["blockStatus"] == "no") {
+            userName = (snap.snapshot.value as Map)["name"];
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (BuildContext context) => Dashboard()));
+          } else {
+            FirebaseAuth.instance.signOut();
+            cmethods.displaySnackbar(
+                'Your are Blocked, Contact Admin', context);
+          }
+        } else {
+          FirebaseAuth.instance.signOut();
           cmethods.displaySnackbar('Account doesn\'t exist', context);
         }
       });
@@ -78,9 +93,13 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.all(10),
           child: Column(
             children: [
-               const SizedBox(height: 30,),
+              const SizedBox(
+                height: 30,
+              ),
               Image.asset("assets/images/uberexec.png"),
-              const SizedBox(height: 60,),
+              const SizedBox(
+                height: 60,
+              ),
               const Text(
                 'Login As a Driver',
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),

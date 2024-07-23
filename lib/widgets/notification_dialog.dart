@@ -69,7 +69,7 @@ class _NotificationDialogState extends State<NotificationDialog> {
 
         // disable homepage location updates
 
-        cMethods.turnOffLocationUpdatesFromHomepage();
+        cMethods.turnOffLocationUpdatesForHomepage();
         Navigator.push(
             context,
             MaterialPageRoute(

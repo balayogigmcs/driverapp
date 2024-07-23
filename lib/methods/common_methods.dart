@@ -25,12 +25,12 @@ class CommonMethods {
     ScaffoldMessenger.of(context).showSnackBar(snackbar);
   }
 
-  turnOffLocationUpdatesFromHomepage() {
+  turnOffLocationUpdatesForHomepage() {
     positionStreamHomePage!.pause();
     Geofire.removeLocation(FirebaseAuth.instance.currentUser!.uid);
   }
 
-  turnOnLocationUpdatesFromHomepage() {
+  turnOnLocationUpdatesForHomepage() {
     positionStreamHomePage!.resume();
     Geofire.setLocation(FirebaseAuth.instance.currentUser!.uid,
         driverCurrentPosition!.latitude, driverCurrentPosition!.longitude);
@@ -79,5 +79,21 @@ class CommonMethods {
         responceFromDirectionsAPI["routes"][0]["overview_polyline"]["points"];
 
     return detailsModel;
+  }
+
+
+  calculateFareAmount(DirectionDetails directionDetails) {
+    double distancePerKmAmount = 0.4;
+    double durationPerMinuteAmount = 0.3;
+    double baseFareAmount = 2;
+
+    double totalDistanceTravelFareAmount =
+        (directionDetails.distanceValueDigits! / 1000) * distancePerKmAmount;
+
+    double totalDurationSpendFareAmount = (directionDetails.durationValueDigits!/60) * durationPerMinuteAmount;
+
+    double totalOverAllFareAmount = baseFareAmount + totalDistanceTravelFareAmount +totalDurationSpendFareAmount;
+
+    return totalOverAllFareAmount.toStringAsFixed(1);
   }
 }

@@ -5,6 +5,8 @@ import 'package:cccd/methods/common_methods.dart';
 import 'package:cccd/methods/map_theme_methods.dart';
 import 'package:cccd/models/trip_details.dart';
 import 'package:cccd/widgets/loading_dialog.dart';
+import 'package:cccd/widgets/payment_dialog.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -38,6 +40,7 @@ class _NewTripPageState extends State<NewTripPage> {
   String distanceText = "";
   String buttonTitleText = "ARRIVED";
   Color buttonColor = Colors.indigoAccent;
+  CommonMethods cmethods = CommonMethods();
 
   makeMarker() {
     if (carMarkerIcon == null) {
@@ -249,6 +252,114 @@ class _NewTripPageState extends State<NewTripPage> {
     }
   }
 
+  endTripNow() async {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) =>
+            LoadingDialog(messageText: 'Please wait ....'));
+
+    var driverCurrentLocationLatLng = LatLng(
+        driverCurrentPosition!.latitude, driverCurrentPosition!.longitude);
+
+    var directionDetailsEndTripInfo =
+        await CommonMethods.getDirectionDetailsFromAPI(
+            widget.newTripDetailInfo!.pickUpLatLng!,
+            driverCurrentLocationLatLng);
+
+    Navigator.pop(context);
+
+    String fareAmount =
+        (cmethods.calculateFareAmount(directionDetailsEndTripInfo!)).toString();
+
+    await FirebaseDatabase.instance
+        .ref()
+        .child("tripRequests")
+        .child(widget.newTripDetailInfo!.tripID!)
+        .child("fareAmount")
+        .set(fareAmount);
+
+    await FirebaseDatabase.instance
+        .ref()
+        .child("tripRequests")
+        .child(widget.newTripDetailInfo!.tripID!)
+        .child("status")
+        .set("ended");
+
+    positionStreamNewTripPage!.cancel();
+
+    // Dialog for collecting fare amount
+    displayPaymentDialog(fareAmount);
+
+    // Save fare amount to driver total earnings
+    saveFareAmountToDriverTotalEarnings(fareAmount);
+  }
+
+  displayPaymentDialog(fareAmount) {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) =>
+            PaymentDialog(fareAmount: fareAmount));
+  }
+
+  saveFareAmountToDriverTotalEarnings(String fareAmount) async {
+    DatabaseReference driverEarningsRef = FirebaseDatabase.instance
+        .ref()
+        .child("drivers")
+        .child(FirebaseAuth.instance.currentUser!.uid)
+        .child("earnings");
+
+    await driverEarningsRef.once().then((snap) {
+      if (snap.snapshot.value != null) {
+        double previousTotalEarnings =
+            double.parse(snap.snapshot.value.toString());
+        double fareAmountForTrip = double.parse(fareAmount);
+
+        double newTotalEarnings = previousTotalEarnings + fareAmountForTrip;
+
+        driverEarningsRef.set(newTotalEarnings);
+      } else {
+        driverEarningsRef.set(fareAmount);
+      }
+    });
+  }
+
+  saveDriverDataToTripInfo() async {
+    Map<String, dynamic> driverDataMap = {
+      "status": "accepted",
+      "driverID": FirebaseAuth.instance.currentUser!.uid,
+      "driverName": driverName,
+      "driverPhone": driverPhone,
+      "driverPhoto": driverPhoto,
+      "carDetails": carColor + " - " + carModel + " - " + carNumber,
+    };
+
+    Map<String, dynamic> driverCurrentLocation = {
+      "latitude": driverCurrentPosition!.latitude.toString(),
+      "longitude": driverCurrentPosition!.longitude.toString()
+    };
+
+    await FirebaseDatabase.instance
+        .ref()
+        .child("tripRequests")
+        .child(widget.newTripDetailInfo!.tripID!)
+        .update(driverDataMap);
+
+    await FirebaseDatabase.instance
+        .ref()
+        .child("tripRequests")
+        .child(widget.newTripDetailInfo!.tripID!)
+        .child("driverLocation")
+        .update(driverCurrentLocation);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    saveDriverDataToTripInfo();
+  }
+
   @override
   Widget build(BuildContext context) {
     makeMarker();
@@ -458,7 +569,9 @@ class _NewTripPageState extends State<NewTripPage> {
 
                           // end trip button
 
-                          else if (statusOfTrip == "ontrip") {}
+                          else if (statusOfTrip == "ontrip") {
+                            endTripNow();
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                             backgroundColor: buttonColor),
