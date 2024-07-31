@@ -93,16 +93,20 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.all(10),
           child: Column(
             children: [
-              const SizedBox(
-                height: 30,
+              Padding(
+                padding: const EdgeInsets.all(40.0),
+                child: Image.asset(
+                  "assets/images/logo.png",
+                  width: 200,
+                  height: 200,
+                ),
               ),
-              Image.asset("assets/images/uberexec.png"),
               const SizedBox(
-                height: 60,
+                height: 0,
               ),
-              const Text(
+              Text(
                 'Login As a Driver',
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.headlineMedium,
               ),
               Padding(
                 padding: const EdgeInsets.all(5),
@@ -134,12 +138,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         checkIfNetworkAvailable();
                       },
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
+                          backgroundColor: Colors.blue,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 80, vertical: 10)),
                       child: const Text(
                         'Login',
-                        style: TextStyle(color: Colors.black),
+                        style: TextStyle(color: Colors.white),
                       ),
                     ),
                     const SizedBox(
@@ -154,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       child: const Text(
                         'Don\'t have a account? Register here',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: Colors.blue),
                       ),
                     )
                   ],

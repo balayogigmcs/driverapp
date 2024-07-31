@@ -35,6 +35,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white38,
         body: Center(
       child: SingleChildScrollView(
         child: Column(
@@ -46,7 +47,7 @@ class _ProfilePageState extends State<ProfilePage> {
               height: 180,
               decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.grey,
+                  color: Colors.white,
                   image: DecorationImage(
                       fit: BoxFit.fitHeight, image: NetworkImage(driverPhoto))),
             ),
@@ -62,15 +63,15 @@ class _ProfilePageState extends State<ProfilePage> {
                 controller: nameTextEditingController,
                 textAlign: TextAlign.center,
                 enabled: false,
-                style: TextStyle(fontSize: 16, color: Colors.white),
+                style: TextStyle(fontSize: 16, color: Colors.black),
                 decoration: InputDecoration(
                     filled: true,
-                    fillColor: Colors.white24,
+                    fillColor: Colors.white,
                     border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white, width: 2)),
+                        borderSide: BorderSide(color: Colors.black, width: 2)),
                     prefixIcon: Icon(
                       Icons.person,
-                      color: Colors.white,
+                      color: Colors.black,
                     )),
               ),
             ),
@@ -81,15 +82,15 @@ class _ProfilePageState extends State<ProfilePage> {
                 controller: phoneTextEditingController,
                 textAlign: TextAlign.center,
                 enabled: false,
-                style: TextStyle(fontSize: 16, color: Colors.white),
+                style: TextStyle(fontSize: 16, color: Colors.black),
                 decoration: InputDecoration(
                     filled: true,
-                    fillColor: Colors.white24,
+                    fillColor: Colors.white,
                     border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white, width: 2)),
+                        borderSide: BorderSide(color: Colors.black, width: 2)),
                     prefixIcon: Icon(
                       Icons.phone,
-                      color: Colors.white,
+                      color: Colors.black,
                     )),
               ),
             ),
@@ -100,15 +101,15 @@ class _ProfilePageState extends State<ProfilePage> {
                 controller: emailTextEditingController,
                 textAlign: TextAlign.center,
                 enabled: false,
-                style: TextStyle(fontSize: 16, color: Colors.white),
+                style: TextStyle(fontSize: 16, color: Colors.black),
                 decoration: InputDecoration(
                     filled: true,
-                    fillColor: Colors.white24,
+                    fillColor: Colors.white,
                     border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white, width: 2)),
+                        borderSide: BorderSide(color: Colors.black, width: 2)),
                     prefixIcon: Icon(
                       Icons.email,
-                      color: Colors.white,
+                      color: Colors.black,
                     )),
               ),
             ),
@@ -119,15 +120,15 @@ class _ProfilePageState extends State<ProfilePage> {
                 controller: carTextEditingController,
                 textAlign: TextAlign.center,
                 enabled: false,
-                style: TextStyle(fontSize: 16, color: Colors.white),
+                style: TextStyle(fontSize: 16, color: Colors.black),
                 decoration: InputDecoration(
                     filled: true,
-                    fillColor: Colors.white24,
+                    fillColor: Colors.white,
                     border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white, width: 2)),
+                        borderSide: BorderSide(color: Colors.black, width: 2)),
                     prefixIcon: Icon(
                       Icons.drive_eta_rounded,
-                      color: Colors.white,
+                      color: Colors.black,
                     )),
               ),
             ),

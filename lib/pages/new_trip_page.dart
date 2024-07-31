@@ -7,7 +7,6 @@ import 'package:cccd/models/trip_details.dart';
 import 'package:cccd/widgets/loading_dialog.dart';
 import 'package:cccd/widgets/payment_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
@@ -15,9 +14,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+
 class NewTripPage extends StatefulWidget {
   TripDetails? newTripDetailInfo;
   NewTripPage({super.key, this.newTripDetailInfo});
+
   @override
   State<NewTripPage> createState() => _NewTripPageState();
 }
@@ -272,12 +273,20 @@ class _NewTripPageState extends State<NewTripPage> {
     String fareAmount =
         (cmethods.calculateFareAmount(directionDetailsEndTripInfo!)).toString();
 
+
     await FirebaseDatabase.instance
         .ref()
         .child("tripRequests")
         .child(widget.newTripDetailInfo!.tripID!)
         .child("fareAmount")
         .set(fareAmount);
+
+    // await FirebaseDatabase.instance
+    //     .ref()
+    //     .child("tripRequests")
+    //     .child(widget.newTripDetailInfo!.tripID!)
+    //     .child("status")
+    //     .set("completed");
 
     await FirebaseDatabase.instance
         .ref()
@@ -362,9 +371,9 @@ class _NewTripPageState extends State<NewTripPage> {
 
   @override
   Widget build(BuildContext context) {
-    makeMarker();
-    return Scaffold(
-        body: Stack(
+  makeMarker();
+  return Scaffold(
+    body: Stack(
       children: [
         // GOOGLE MAP
         GoogleMap(
@@ -406,20 +415,23 @@ class _NewTripPageState extends State<NewTripPage> {
           bottom: 0,
           child: Container(
             decoration: const BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(17),
-                    topRight: Radius.circular(17)),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 17,
-                      spreadRadius: 0.5,
-                      offset: Offset(0.7, 0.7))
-                ]),
+              color: Colors.white,  // Changed background color to white
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(17),
+                topRight: Radius.circular(17),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,  // Changed shadow color to black12
+                  blurRadius: 17,
+                  spreadRadius: 0.5,
+                  offset: Offset(0.7, 0.7),
+                ),
+              ],
+            ),
             height: 256,
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -427,8 +439,8 @@ class _NewTripPageState extends State<NewTripPage> {
                   Center(
                     child: Text(
                       '$durationText - $distanceText',
-                      style: TextStyle(
-                          color: Colors.green,
+                      style: const TextStyle(
+                          color: Colors.blue,  // Changed text color to blue
                           fontSize: 15,
                           fontWeight: FontWeight.bold),
                     ),
@@ -441,24 +453,23 @@ class _NewTripPageState extends State<NewTripPage> {
                     children: [
                       Text(
                         widget.newTripDetailInfo!.userName!,
-                        style: TextStyle(
-                            color: Colors.green,
+                        style: const TextStyle(
+                            color: Colors.black,  // Changed text color to black
                             fontSize: 15,
                             fontWeight: FontWeight.bold),
                       ),
 
                       // Call user Icon Button
-
                       GestureDetector(
                         onTap: () {
                           launchUrl(Uri.parse(
                               "tel://${widget.newTripDetailInfo!.userPhone.toString()}"));
                         },
                         child: Padding(
-                          padding: EdgeInsets.only(right: 10),
+                          padding: const EdgeInsets.only(right: 10),
                           child: Icon(
                             Icons.phone,
-                            color: Colors.grey,
+                            color: Colors.blue,  // Changed icon color to blue
                           ),
                         ),
                       )
@@ -481,8 +492,8 @@ class _NewTripPageState extends State<NewTripPage> {
                         child: Text(
                           widget.newTripDetailInfo!.pickUpAddress.toString(),
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: Colors.grey,
+                          style: const TextStyle(
+                              color: Colors.black,  // Changed text color to black
                               fontSize: 18,
                               fontWeight: FontWeight.bold),
                         ),
@@ -495,7 +506,6 @@ class _NewTripPageState extends State<NewTripPage> {
                   ),
 
                   // DROPOFF ICON AND LOCATION
-
                   Row(
                     children: [
                       Image.asset(
@@ -507,8 +517,8 @@ class _NewTripPageState extends State<NewTripPage> {
                         child: Text(
                           widget.newTripDetailInfo!.dropOffAddress.toString(),
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: Colors.grey,
+                          style: const TextStyle(
+                              color: Colors.black,  // Changed text color to black
                               fontSize: 18,
                               fontWeight: FontWeight.bold),
                         ),
@@ -522,11 +532,11 @@ class _NewTripPageState extends State<NewTripPage> {
                   Center(
                     child: ElevatedButton(
                         onPressed: () async {
-                          // arrived  trip button
+                          // Arrived trip button
                           if (statusOfTrip == "accepted") {
                             setState(() {
                               buttonTitleText = "START TRIP";
-                              buttonColor = Colors.green;
+                              buttonColor = Colors.blue;  // Changed button color to blue
                             });
                             statusOfTrip = "arrived";
 
@@ -551,11 +561,10 @@ class _NewTripPageState extends State<NewTripPage> {
                             Navigator.pop(context);
                           }
                           // Start trip button
-
                           else if (statusOfTrip == "arrived") {
                             setState(() {
                               buttonTitleText = "END TRIP";
-                              buttonColor = Colors.amber;
+                              buttonColor = Colors.red;  // Changed button color to amber
                             });
                             statusOfTrip = "ontrip";
 
@@ -566,9 +575,7 @@ class _NewTripPageState extends State<NewTripPage> {
                                 .child("status")
                                 .set("ontrip");
                           }
-
-                          // end trip button
-
+                          // End trip button
                           else if (statusOfTrip == "ontrip") {
                             endTripNow();
                           }
@@ -577,7 +584,7 @@ class _NewTripPageState extends State<NewTripPage> {
                             backgroundColor: buttonColor),
                         child: Text(
                           buttonTitleText,
-                          style: TextStyle(color: Colors.white),
+                          style: const TextStyle(color: Colors.white),
                         )),
                   )
                 ],
@@ -586,6 +593,8 @@ class _NewTripPageState extends State<NewTripPage> {
           ),
         )
       ],
-    ));
-  }
+    ),
+  );
+}
+
 }

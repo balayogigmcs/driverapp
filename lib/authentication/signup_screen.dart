@@ -255,12 +255,12 @@ class _SignupScreenState extends State<SignupScreen> {
                         checkIfNetworkAvailable();
                       },
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
+                          backgroundColor: Colors.blue,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 80, vertical: 10)),
                       child: const Text(
                         'Sign Up',
-                        style: TextStyle(color: Colors.black),
+                        style: TextStyle(color: Colors.white),
                       ),
                     ),
                     const SizedBox(
@@ -275,7 +275,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       },
                       child: const Text(
                         'Already have a account? Login here',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: Colors.blue),
                       ),
                     )
                   ],

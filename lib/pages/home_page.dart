@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ffi';
 import 'package:cccd/global/global_var.dart';
 import 'package:cccd/methods/map_theme_methods.dart';
 import 'package:cccd/push_notification.dart/push_notification_system.dart';
@@ -30,7 +29,8 @@ class _HomePageState extends State<HomePage> {
   DatabaseReference? newTripRequestReference;
   MapThemeMethods themeMethods = MapThemeMethods();
 
-  getCurrentLiveLocationOfDriver() async {
+  Future<void> getCurrentLiveLocationOfDriver() async {
+  try {
     Position positionOfUser = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.bestForNavigation);
     currentPositionOfDriver = positionOfUser;
@@ -40,9 +40,17 @@ class _HomePageState extends State<HomePage> {
         currentPositionOfDriver!.latitude, currentPositionOfDriver!.longitude);
     CameraPosition cameraPosition =
         CameraPosition(target: positionOfUserInLatLng, zoom: 15);
-    controllerGoogleMap!
-        .animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+
+    if (controllerGoogleMap != null) {
+      controllerGoogleMap!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+    } else {
+      print('controllerGoogleMap is null');
+    }
+  } catch (e) {
+    print('Error in getting current location: $e');
   }
+}
+
 
   goOnlineNow() {
     // all driver who are available for new trip requests
@@ -130,19 +138,20 @@ class _HomePageState extends State<HomePage> {
         children: [
           // GOOGLE MAP
           GoogleMap(
-            padding: EdgeInsets.only(top: 136),
-            mapType: MapType.normal,
-            myLocationButtonEnabled: true,
-            myLocationEnabled: true,
-            initialCameraPosition: googlePlexInitialPositon,
-            onMapCreated: (GoogleMapController mapController) {
-              controllerGoogleMap = mapController;
-              // themeMethods.updateMapTheme(controllerGoogleMap!);
-              googleMapCompleterController.complete(controllerGoogleMap);
+  padding: EdgeInsets.only(top: 136),
+  mapType: MapType.normal,
+  myLocationButtonEnabled: true,
+  myLocationEnabled: true,
+  initialCameraPosition: googlePlexInitialPositon,
+  onMapCreated: (GoogleMapController mapController) {
+    controllerGoogleMap = mapController;
+    googleMapCompleterController.complete(controllerGoogleMap);
 
-              getCurrentLiveLocationOfDriver();
-            },
-          ),
+    // Now it is safe to call getCurrentLiveLocationOfDriver()
+    getCurrentLiveLocationOfDriver();
+  },
+),
+
 
           Container(
             height: 136,
@@ -166,7 +175,7 @@ class _HomePageState extends State<HomePage> {
                             builder: (BuildContext context) {
                               return Container(
                                 decoration: BoxDecoration(
-                                    color: Colors.black54,
+                                    color: Colors.white,
                                     borderRadius: BorderRadius.only(
                                         topLeft: Radius.circular(15),
                                         topRight: Radius.circular(15)),
@@ -195,7 +204,7 @@ class _HomePageState extends State<HomePage> {
                                         style: TextStyle(
                                             fontSize: 22,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.white70),
+                                            color: Colors.black),
                                       ),
                                       const SizedBox(
                                         height: 21,
@@ -208,7 +217,7 @@ class _HomePageState extends State<HomePage> {
                                         style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.white70),
+                                            color: Colors.black),
                                       ),
                                       const SizedBox(
                                         height: 21,

@@ -19,7 +19,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
   Widget build(BuildContext context) {
     return Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: Colors.black54,
+        backgroundColor: Colors.white,
         child: Container(
           margin: EdgeInsets.all(4),
           width: double.infinity,
@@ -35,7 +35,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
               ),
               Text(
                 "COLLECT CASH",
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: Colors.black),
               ),
               const SizedBox(
                 height: 21,
@@ -43,7 +43,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
               const Divider(
                 thickness: 1,
                 height: 1.5,
-                color: Colors.white70,
+                color: Colors.black,
               ),
               const SizedBox(
                 height: 15,
@@ -51,7 +51,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
               Text(
                 "\$ ${widget.fareAmount}!",
                 style: TextStyle(
-                    color: Colors.grey,
+                    color: Colors.blue,
                     fontSize: 26,
                     fontWeight: FontWeight.bold),
               ),
@@ -63,7 +63,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                 child: Text(
                   "This is the fare amount (\$ ${widget.fareAmount}!) to be charged from the patient", // Updated text with correct syntax
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                  style: TextStyle(color: Colors.black, fontSize: 16),
                 ),
               ),
               const SizedBox(
@@ -84,7 +84,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                   },
                   style:
                       ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  child: Text('COLLECT CASH')),
+                  child: Text('COLLECT AMOUNT')),
               const SizedBox(
                 height: 41,
               ),

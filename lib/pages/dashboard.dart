@@ -59,8 +59,9 @@ class _DashboardState extends State<Dashboard>
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile")
         ],
         currentIndex: indexSelected,
-        unselectedItemColor: Colors.grey,
-        selectedItemColor: Colors.pink,
+        unselectedItemColor: Colors.black,
+        selectedItemColor: Colors.blue,
+        backgroundColor: Colors.white,
         showSelectedLabels: true,
         selectedLabelStyle: const TextStyle(fontSize: 12),
         type: BottomNavigationBarType.fixed,
