@@ -1,57 +1,54 @@
-// import 'package:flutter/material.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 
-// class DriverStatusProvider with ChangeNotifier {
-//   bool _isOnline = false;
-//   final FirebaseDatabase _database = FirebaseDatabase.instance;
-//   final String _uid = FirebaseAuth.instance.currentUser!.uid;
+class DriverStatusProvider extends ChangeNotifier {
+  bool _isOnline = false;
 
-//   DriverStatusProvider() {
-//     _listenToStatusChanges();
-//   }
+  bool get isOnline => _isOnline;
 
-//   bool get isOnline => _isOnline;
-
-//   void _listenToStatusChanges() {
-//     _database
-//         .ref()
-//         .child('drivers')
-//         .child(_uid)
-//         .child('driverStatus')
-//         .onValue
-//         .listen((event) {
-//       final snapshot = event.snapshot;
-//       if (snapshot.exists && snapshot.value == 'online') {
-//         _isOnline = true;
-//       } else {
-//         _isOnline = false;
-//       }
-//       notifyListeners();
-//     });
-//   }
-
-//   Future<void> setOnlineStatus(bool online) async {
-//     await _database
-//         .ref()
-//         .child('drivers')
-//         .child(_uid)
-//         .child('driverStatus')
-//         .set(online ? 'online' : 'offline');
-//   }
-// }
-
-
-import 'package:flutter/foundation.dart';
-
-class DriverState with ChangeNotifier {
-  bool _isDriverAvailable = false;
-
-  bool get isDriverAvailable => _isDriverAvailable;
-
-  void setDriverStatus(bool status) {
-    _isDriverAvailable = status;
+  Future<void> toggleOnlineStatus() async {
+    _isOnline = !_isOnline;
     notifyListeners();
+    await updateDriverStatusInFirebase();
+  }
+
+  Future<void> updateDriverStatusInFirebase() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseDatabase.instance
+          .ref()
+          .child('drivers')
+          .child(user.uid)
+          .update({'status': _isOnline ? 'online' : 'offline'});
+    }
+  }
+
+  Future<void> setInitialStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final DatabaseEvent event = await FirebaseDatabase.instance
+          .ref()
+          .child('drivers')
+          .child(user.uid)
+          .once();
+      final DataSnapshot snapshot = event.snapshot;
+      final data = snapshot.value as Map<dynamic, dynamic>?;
+      if (data != null && data['status'] != null) {
+        _isOnline = data['status'] == 'online';
+      }
+      notifyListeners();
+    }
+  }
+
+  Future<void> setOffline() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseDatabase.instance
+          .ref()
+          .child('drivers')
+          .child(user.uid)
+          .update({'status': 'offline'});
+    }
   }
 }
-
