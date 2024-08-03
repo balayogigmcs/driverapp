@@ -4,7 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class MapThemeMethods {
   void updateMapTheme(GoogleMapController controller) {
-    getJsonFileFromThemes('themes/dark_style.json')
+    getJsonFileFromThemes('themes/light_style.json')
         .then((value) => setGoogleMapStyle(value, controller));
   }
 
