@@ -281,12 +281,6 @@ class _NewTripPageState extends State<NewTripPage> {
         .child("fareAmount")
         .set(fareAmount);
 
-    // await FirebaseDatabase.instance
-    //     .ref()
-    //     .child("tripRequests")
-    //     .child(widget.newTripDetailInfo!.tripID!)
-    //     .child("status")
-    //     .set("completed");
 
     await FirebaseDatabase.instance
         .ref()

@@ -47,7 +47,7 @@ class _ProfilePageState extends State<ProfilePage> {
               height: 180,
               decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white,
+                  color: Colors.black,
                   image: DecorationImage(
                       fit: BoxFit.fitHeight, image: NetworkImage(driverPhoto))),
             ),

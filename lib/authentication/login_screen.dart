@@ -67,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
       driversRef.once().then((snap) {
         if (snap.snapshot.value != null) {
           if ((snap.snapshot.value as Map)["blockStatus"] == "no") {
-            userName = (snap.snapshot.value as Map)["name"];
+            userName = (snap.snapshot.value as Map)["name"] ?? "unknown";
             Navigator.push(
                 context,
                 MaterialPageRoute(

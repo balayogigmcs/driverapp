@@ -1,4 +1,3 @@
-
 import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:cccd/global/global_var.dart';
 import 'package:cccd/models/trip_details.dart';
@@ -9,6 +8,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 class PushNotificationSystem {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final User? user = FirebaseAuth.instance.currentUser;
@@ -61,8 +61,10 @@ class PushNotificationSystem {
   }
 
   Future<void> retrieveTripRequestInfo(String tripID, BuildContext context) async {
+    final BuildContext dialogContext = Navigator.of(context).context;
+
     showDialog(
-      context: context,
+      context: dialogContext,
       barrierDismissible: false,
       builder: (BuildContext context) => LoadingDialog(messageText: "Getting details..."),
     );
@@ -71,7 +73,7 @@ class PushNotificationSystem {
         FirebaseDatabase.instance.ref().child("tripRequests").child(tripID);
 
     await tripRequestRef.once().then((dataSnapshot) async {
-      Navigator.pop(context);
+      Navigator.pop(dialogContext);
 
       audioPlayer.open(Audio("assets/audio/alert_sound.mp3"));
 
@@ -96,7 +98,7 @@ class PushNotificationSystem {
       List<Map<dynamic, dynamic>> mobilityAidDataList = await fetchMobilityAidData();
 
       showDialog(
-        context: context,
+        context: dialogContext,
         builder: (BuildContext context) => NotificationDialog(
           tripDetailsInfo: tripDetailsInfo,
           mobilityAidDataList: mobilityAidDataList,
@@ -106,29 +108,32 @@ class PushNotificationSystem {
   }
 
   Future<List<Map<dynamic, dynamic>>> fetchMobilityAidData() async {
-  List<Map<dynamic, dynamic>> mobilityAidDataList = [];
-  DatabaseReference mobilityAidsRef = FirebaseDatabase.instance.ref().child('mobilityAids');
-  print("Fetching mobility aid data...");
+    List<Map<dynamic, dynamic>> mobilityAidDataList = [];
+    DatabaseReference mobilityAidsRef = FirebaseDatabase.instance.ref().child('mobilityAids');
+    print("Fetching mobility aid data...");
 
-  await mobilityAidsRef.orderByChild('isCurrent').equalTo(true).once().then((mobilityAidSnap) async {
-    final values = mobilityAidSnap.snapshot.value as Map<dynamic, dynamic>?;
-    if (values != null) {
-      mobilityAidDataList.clear(); // Clear the list before adding new data
-      values.forEach((key, value) async {
-        mobilityAidDataList.add(Map<dynamic, dynamic>.from(value));
+    await mobilityAidsRef.orderByChild('isCurrent').equalTo(true).once().then((mobilityAidSnap) async {
+      final values = mobilityAidSnap.snapshot.value as Map<dynamic, dynamic>?;
+      if (values != null) {
+        mobilityAidDataList.clear(); // Clear the list before adding new data
+        values.forEach((key, value) async {
+          mobilityAidDataList.add(Map<dynamic, dynamic>.from(value));
 
-        // Update the fetched record to set isCurrent to false
-        await mobilityAidsRef.child(key).update({'isCurrent': false});
-      });
-    }
-    print('Fetched mobility aid data: $mobilityAidDataList'); // Debugging log
-  }).catchError((error) {
-    print('Error fetching mobility aid data: $error'); // Debugging log
-  });
-  return mobilityAidDataList;
+          // Update the fetched record to set isCurrent to false
+          await mobilityAidsRef.child(key).update({'isCurrent': false});
+        });
+      }
+      print('Fetched mobility aid data: $mobilityAidDataList'); // Debugging log
+    }).catchError((error) {
+      print('Error fetching mobility aid data: $error'); // Debugging log
+    });
+    return mobilityAidDataList;
+  }
 }
 
-}
+
+
+
 
 
 

@@ -16,7 +16,7 @@ class CommonMethods {
     if (connectionResult != ConnectivityResult.mobile &&
         connectionResult != ConnectivityResult.wifi) {
       if (!context.mounted) return;
-      displaySnackbar('check internet connection', context);
+      displaySnackbar('Check internet connection', context);
     }
   }
 
@@ -25,18 +25,27 @@ class CommonMethods {
     ScaffoldMessenger.of(context).showSnackBar(snackbar);
   }
 
-  turnOffLocationUpdatesForHomepage() {
-    positionStreamHomePage!.pause();
-    Geofire.removeLocation(FirebaseAuth.instance.currentUser!.uid);
+  void turnOffLocationUpdatesForHomepage() {
+    if (positionStreamHomePage != null) {
+      positionStreamHomePage!.pause();
+    }
+    if (FirebaseAuth.instance.currentUser != null) {
+      Geofire.removeLocation(FirebaseAuth.instance.currentUser!.uid);
+    }
   }
 
-  turnOnLocationUpdatesForHomepage() {
-    positionStreamHomePage!.resume();
-    Geofire.setLocation(FirebaseAuth.instance.currentUser!.uid,
-        driverCurrentPosition!.latitude, driverCurrentPosition!.longitude);
+  void turnOnLocationUpdatesForHomepage() {
+    if (positionStreamHomePage != null && driverCurrentPosition != null) {
+      positionStreamHomePage!.resume();
+      Geofire.setLocation(FirebaseAuth.instance.currentUser!.uid,
+          driverCurrentPosition!.latitude, driverCurrentPosition!.longitude);
+    } else {
+      // Handle the case where positionStreamHomePage or driverCurrentPosition is null
+      print('Error: positionStreamHomePage or driverCurrentPosition is null');
+    }
   }
 
-  static sendRequestToAPI(String apiUrl) async {
+  static Future sendRequestToAPI(String apiUrl) async {
     http.Response responseFromAPI = await http.get(Uri.parse(apiUrl));
 
     try {
@@ -52,35 +61,33 @@ class CommonMethods {
     }
   }
 
-
   // DIRECTION API
   static Future<DirectionDetails?> getDirectionDetailsFromAPI(
       LatLng source, LatLng destination) async {
     String urlDirectionsAPI =
         "https://maps.googleapis.com/maps/api/directions/json?destination=${destination.latitude},${destination.longitude}&origin=${source.latitude},${source.longitude}&mode=driving&key=$googleMapKey";
 
-    var responceFromDirectionsAPI = await sendRequestToAPI(urlDirectionsAPI);
+    var responseFromDirectionsAPI = await sendRequestToAPI(urlDirectionsAPI);
 
-    if (responceFromDirectionsAPI == "error") {
+    if (responseFromDirectionsAPI == "error") {
       return null;
     }
 
     DirectionDetails detailsModel = DirectionDetails();
     detailsModel.distanceTextString =
-        responceFromDirectionsAPI["routes"][0]["legs"][0]["distance"]["text"];
+        responseFromDirectionsAPI["routes"][0]["legs"][0]["distance"]["text"];
     detailsModel.distanceValueDigits =
-        responceFromDirectionsAPI["routes"][0]["legs"][0]["distance"]["value"];
+        responseFromDirectionsAPI["routes"][0]["legs"][0]["distance"]["value"];
     detailsModel.durationTextString =
-        responceFromDirectionsAPI["routes"][0]["legs"][0]["duration"]["text"];
+        responseFromDirectionsAPI["routes"][0]["legs"][0]["duration"]["text"];
     detailsModel.durationValueDigits =
-        responceFromDirectionsAPI["routes"][0]["legs"][0]["duration"]["value"];
+        responseFromDirectionsAPI["routes"][0]["legs"][0]["duration"]["value"];
 
     detailsModel.encodePoints =
-        responceFromDirectionsAPI["routes"][0]["overview_polyline"]["points"];
+        responseFromDirectionsAPI["routes"][0]["overview_polyline"]["points"];
 
     return detailsModel;
   }
-
 
   calculateFareAmount(DirectionDetails directionDetails) {
     double distancePerKmAmount = 0.4;
@@ -90,10 +97,13 @@ class CommonMethods {
     double totalDistanceTravelFareAmount =
         (directionDetails.distanceValueDigits! / 1000) * distancePerKmAmount;
 
-    double totalDurationSpendFareAmount = (directionDetails.durationValueDigits!/60) * durationPerMinuteAmount;
+    double totalDurationSpendFareAmount =
+        (directionDetails.durationValueDigits! / 60) * durationPerMinuteAmount;
 
-    double totalOverAllFareAmount = baseFareAmount + totalDistanceTravelFareAmount +totalDurationSpendFareAmount;
+    double totalOverallFareAmount = baseFareAmount +
+        totalDistanceTravelFareAmount +
+        totalDurationSpendFareAmount;
 
-    return totalOverAllFareAmount.toStringAsFixed(1);
+    return totalOverallFareAmount.toStringAsFixed(1);
   }
 }
