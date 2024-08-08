@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:cccd/global/global_var.dart';
 import 'package:cccd/models/direction_details.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -26,14 +25,38 @@ class CommonMethods {
   }
 
   turnOffLocationUpdatesForHomepage() {
-    positionStreamHomePage!.pause();
-    Geofire.removeLocation(FirebaseAuth.instance.currentUser!.uid);
+    if (positionStreamHomePage != null) {
+      positionStreamHomePage!.pause();
+    } else {
+      print('positionStreamHomePage is null');
+    }
+
+    var currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      Geofire.removeLocation(currentUser.uid);
+    } else {
+      print('currentUser is null');
+    }
   }
 
   turnOnLocationUpdatesForHomepage() {
-    positionStreamHomePage!.resume();
-    Geofire.setLocation(FirebaseAuth.instance.currentUser!.uid,
-        driverCurrentPosition!.latitude, driverCurrentPosition!.longitude);
+    if (positionStreamHomePage != null) {
+      positionStreamHomePage!.resume();
+    } else {
+      print('positionStreamHomePage is null');
+    }
+
+    var currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      if (driverCurrentPosition != null) {
+        Geofire.setLocation(currentUser.uid, driverCurrentPosition!.latitude,
+            driverCurrentPosition!.longitude);
+      } else {
+        print('driverCurrentPosition is null');
+      }
+    } else {
+      print('currentUser is null');
+    }
   }
 
   static sendRequestToAPI(String apiUrl) async {
@@ -51,7 +74,6 @@ class CommonMethods {
       return "error";
     }
   }
-
 
   // DIRECTION API
   static Future<DirectionDetails?> getDirectionDetailsFromAPI(
@@ -81,7 +103,6 @@ class CommonMethods {
     return detailsModel;
   }
 
-
   calculateFareAmount(DirectionDetails directionDetails) {
     double distancePerKmAmount = 0.4;
     double durationPerMinuteAmount = 0.3;
@@ -90,9 +111,12 @@ class CommonMethods {
     double totalDistanceTravelFareAmount =
         (directionDetails.distanceValueDigits! / 1000) * distancePerKmAmount;
 
-    double totalDurationSpendFareAmount = (directionDetails.durationValueDigits!/60) * durationPerMinuteAmount;
+    double totalDurationSpendFareAmount =
+        (directionDetails.durationValueDigits! / 60) * durationPerMinuteAmount;
 
-    double totalOverAllFareAmount = baseFareAmount + totalDistanceTravelFareAmount +totalDurationSpendFareAmount;
+    double totalOverAllFareAmount = baseFareAmount +
+        totalDistanceTravelFareAmount +
+        totalDurationSpendFareAmount;
 
     return totalOverAllFareAmount.toStringAsFixed(1);
   }
