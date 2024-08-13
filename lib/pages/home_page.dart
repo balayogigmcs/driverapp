@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:cccd/global/global_var.dart';
 import 'package:cccd/methods/map_theme_methods.dart';
 import 'package:cccd/provider/driver_status_provider.dart';
-import 'package:cccd/push_notification.dart/push_notification_system.dart';
+import 'package:cccd/push_notification/push_notification_system.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
@@ -32,9 +32,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    getCurrentLiveLocationOfDriver();
-    retrieveCurrentDriverInfo();
     initializeStatus();
+    retrieveCurrentDriverInfo();
+    initializePushNotificationSystem();
+    if (kIsWeb) {
+      checkWebPermissionsAndLoadMap();
+    } else {
+      getCurrentLiveLocationOfDriver();
+    }
   }
 
   @override
@@ -54,6 +59,55 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
         goOfflineNow();
       }
+    }
+  }
+
+  Future<void> checkWebPermissionsAndLoadMap() async {
+    await requestLocationPermissionWeb();
+    if (currentPositionOfDriver != null) {
+      setState(() {
+        LatLng positionOfUserInLatLng = LatLng(
+          currentPositionOfDriver!.latitude,
+          currentPositionOfDriver!.longitude,
+        );
+
+        CameraPosition cameraPosition = CameraPosition(
+          target: positionOfUserInLatLng,
+          zoom: 15,
+        );
+
+        if (controllerGoogleMap != null) {
+          controllerGoogleMap!.animateCamera(
+            CameraUpdate.newCameraPosition(cameraPosition),
+          );
+        }
+      });
+    }
+  }
+
+  Future<void> requestLocationPermissionWeb() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        print('Location permission denied');
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      print('Location permissions are permanently denied');
+      return;
+    }
+
+    if (permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always) {
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      setState(() {
+        currentPositionOfDriver = position;
+      });
     }
   }
 
@@ -79,60 +133,118 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       print('Error in getting current location: $e');
     }
   }
-
   void goOnlineNow() {
-    // all drivers who are available for new trip requests
-    Geofire.initialize("onlineDrivers");
+  final String uid = FirebaseAuth.instance.currentUser!.uid;
 
-    Geofire.setLocation(FirebaseAuth.instance.currentUser!.uid,
-        currentPositionOfDriver!.latitude, currentPositionOfDriver!.longitude);
+  if (kIsWeb) {
+    // Web implementation without GeoFire
+    final DatabaseReference ref = FirebaseDatabase.instance
+        .ref()
+        .child('onlineDrivers')
+        .child(uid);
+
+    ref.update({
+      'latitude': currentPositionOfDriver!.latitude,
+      'longitude': currentPositionOfDriver!.longitude,
+    });
 
     DatabaseReference newTripRequestReference = FirebaseDatabase.instance
         .ref()
         .child("drivers")
-        .child(FirebaseAuth.instance.currentUser!.uid)
+        .child(uid)
+        .child("newTripStatus");
+
+
+    newTripRequestReference.child('newTripStatus').onValue.listen((event) {
+      // Handle changes in newTripStatus
+      String? newStatus = event.snapshot.value as String?;
+      if (newStatus != null) {
+        // Handle the status change accordingly
+      }
+    });
+  } else {
+    // Mobile implementation using GeoFire
+    Geofire.initialize("onlineDrivers");
+    Geofire.setLocation(uid, currentPositionOfDriver!.latitude,
+        currentPositionOfDriver!.longitude);
+
+    DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+        .ref()
+        .child("drivers")
+        .child(uid)
         .child("newTripStatus");
 
     newTripRequestReference.set("waiting");
-    newTripRequestReference.onValue.listen((event) {});
-  }
-
-  void setAndGetLocationUpdates() {
-    positionStreamHomePage =
-        Geolocator.getPositionStream().listen((Position position) {
-      currentPositionOfDriver = position;
-
-      if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
-        Geofire.setLocation(
-            FirebaseAuth.instance.currentUser!.uid,
-            currentPositionOfDriver!.latitude,
-            currentPositionOfDriver!.longitude);
-      }
-
-      LatLng positionLatLng = LatLng(currentPositionOfDriver!.latitude,
-          currentPositionOfDriver!.longitude);
-
-      controllerGoogleMap!
-          .animateCamera(CameraUpdate.newLatLng(positionLatLng));
+    newTripRequestReference.onValue.listen((event) {
+      // Handle changes in newTripStatus
     });
   }
+}
 
-  void goOfflineNow() {
-    // Stop sharing live location updates to driver
-    Geofire.removeLocation(FirebaseAuth.instance.currentUser!.uid);
+void setAndGetLocationUpdates() {
+  positionStreamHomePage =
+      Geolocator.getPositionStream().listen((Position position) {
+    currentPositionOfDriver = position;
+
+    if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
+      final String uid = FirebaseAuth.instance.currentUser!.uid;
+
+      if (kIsWeb) {
+        // Web implementation
+        final DatabaseReference ref =
+            FirebaseDatabase.instance.ref().child('onlineDrivers').child(uid);
+
+        ref.update({
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+        });
+      } else {
+        // Mobile implementation using GeoFire
+        Geofire.setLocation(uid, currentPositionOfDriver!.latitude,
+            currentPositionOfDriver!.longitude);
+      }
+    }
+
+    LatLng positionLatLng = LatLng(
+        currentPositionOfDriver!.latitude, currentPositionOfDriver!.longitude);
+
+    controllerGoogleMap!
+        .animateCamera(CameraUpdate.newLatLng(positionLatLng));
+  });
+}
+
+void goOfflineNow() {
+  final String uid = FirebaseAuth.instance.currentUser!.uid;
+
+  if (kIsWeb) {
+    // Web implementation
+    final DatabaseReference onlineDriversRef =
+        FirebaseDatabase.instance.ref().child('onlineDrivers').child(uid);
+
+    // Remove the driver's newTripStatus and location data
+    onlineDriversRef.remove();
+    final DatabaseReference ref =
+        FirebaseDatabase.instance.ref().child('drivers').child(uid).child('newTripStatus');
+
+    ref.onDisconnect().remove();
+
+    Provider.of<DriverStatusProvider>(context, listen: false).setOffline();
+  } else {
+    // Mobile implementation using GeoFire
+    Geofire.removeLocation(uid);
 
     DatabaseReference newTripRequestReference = FirebaseDatabase.instance
         .ref()
         .child("drivers")
-        .child(FirebaseAuth.instance.currentUser!.uid)
+        .child(uid)
         .child("newTripStatus");
 
-    newTripRequestReference.onDisconnect();
-    newTripRequestReference.remove();
+    newTripRequestReference.onDisconnect().remove();
 
-    // Set the driver status to offline in Firebase Realtime Database
     Provider.of<DriverStatusProvider>(context, listen: false).setOffline();
   }
+}
+
 
   void initializePushNotificationSystem() {
     PushNotificationSystem notificationSystem = PushNotificationSystem();
@@ -141,31 +253,34 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   void retrieveCurrentDriverInfo() async {
-    try {
-      DatabaseEvent event = await FirebaseDatabase.instance
-          .ref()
-          .child("drivers")
-          .child(FirebaseAuth.instance.currentUser!.uid)
-          .once();
+  try {
+    DatabaseEvent event = await FirebaseDatabase.instance
+        .ref()
+        .child("drivers")
+        .child(FirebaseAuth.instance.currentUser!.uid)
+        .once();
 
-      DataSnapshot snap = event.snapshot;
-      if (snap.value != null) {
-        Map driverData = snap.value as Map;
+    DataSnapshot snap = event.snapshot;
+    if (snap.value != null) {
+      // Correctly casting the LinkedMap<Object?, Object?> to Map<String, dynamic>
+      final Map<String, dynamic>? driverData = Map<String, dynamic>.from(snap.value as Map);
 
+      if (driverData != null) {
         driverName = driverData["name"] ?? 'Unknown';
         driverPhone = driverData["phone"] ?? 'Unknown';
         driverPhoto = driverData["photo"] ?? 'Unknown';
-        carColor = driverData["car details"]["car-color"] ?? 'Unknown';
-        carModel = driverData["car details"]["car-model"] ?? 'Unknown';
-        carNumber = driverData["car details"]["car-number"] ?? 'Unknown';
+        carColor = driverData["car details"]?["car-color"] ?? 'Unknown';
+        carModel = driverData["car details"]?["car-model"] ?? 'Unknown';
+        carNumber = driverData["car details"]?["car-number"] ?? 'Unknown';
       }
-
-      initializePushNotificationSystem();
-    } catch (e) {
-      // Handle exceptions if needed
-      print('Error in retrieveCurrentDriverInfo: $e');
     }
+
+    initializePushNotificationSystem();
+  } catch (e) {
+    print('Error in retrieveCurrentDriverInfo: $e');
   }
+}
+
 
   void initializeStatus() async {
     await Provider.of<DriverStatusProvider>(context, listen: false)
@@ -192,13 +307,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               route: '/drivers',
               icon: Icons.drive_eta,
             ),
-            // Add more menu items as needed
           ],
           selectedRoute: '/',
         ),
         body: Stack(
           children: [
-            // GOOGLE MAP
             GoogleMap(
               padding: EdgeInsets.only(top: 136),
               mapType: MapType.normal,
@@ -208,19 +321,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               onMapCreated: (GoogleMapController mapController) {
                 controllerGoogleMap = mapController;
                 googleMapCompleterController.complete(controllerGoogleMap);
-
-                // Now it is safe to call getCurrentLiveLocationOfDriver()
-                getCurrentLiveLocationOfDriver();
+                checkWebPermissionsAndLoadMap();
               },
             ),
-
             Container(
               height: 136,
               width: double.infinity,
               color: Colors.black54,
             ),
-
-            // GO ONLINE OR OFFLINE CONTAINER
             Positioned(
               top: 61,
               left: 0,
@@ -310,24 +418,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           onPressed: () {
                                             if (!driverStatusProvider
                                                 .isOnline) {
-                                              // go online
                                               goOnlineNow();
-
-                                              // get driver location updates
                                               setAndGetLocationUpdates();
-
                                               Navigator.pop(context);
-
-                                              // Update driver status in Firebase Realtime Database
                                               driverStatusProvider
                                                   .toggleOnlineStatus();
                                             } else {
-                                              // go offline
                                               goOfflineNow();
-
                                               Navigator.pop(context);
-
-                                              // Update driver status in Firebase Realtime Database
                                               driverStatusProvider
                                                   .toggleOnlineStatus();
                                             }
@@ -364,7 +462,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       return Scaffold(
         body: Stack(
           children: [
-            // GOOGLE MAP
             GoogleMap(
               padding: EdgeInsets.only(top: 136),
               mapType: MapType.normal,
@@ -374,19 +471,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               onMapCreated: (GoogleMapController mapController) {
                 controllerGoogleMap = mapController;
                 googleMapCompleterController.complete(controllerGoogleMap);
-
-                // Now it is safe to call getCurrentLiveLocationOfDriver()
                 getCurrentLiveLocationOfDriver();
               },
             ),
-
             Container(
               height: 136,
               width: double.infinity,
               color: Colors.black54,
             ),
-
-            // GO ONLINE OR OFFLINE CONTAINER
             Positioned(
               top: 61,
               left: 0,
@@ -476,24 +568,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           onPressed: () {
                                             if (!driverStatusProvider
                                                 .isOnline) {
-                                              // go online
                                               goOnlineNow();
-
-                                              // get driver location updates
                                               setAndGetLocationUpdates();
-
                                               Navigator.pop(context);
-
-                                              // Update driver status in Firebase Realtime Database
                                               driverStatusProvider
                                                   .toggleOnlineStatus();
                                             } else {
-                                              // go offline
                                               goOfflineNow();
-
                                               Navigator.pop(context);
-
-                                              // Update driver status in Firebase Realtime Database
                                               driverStatusProvider
                                                   .toggleOnlineStatus();
                                             }

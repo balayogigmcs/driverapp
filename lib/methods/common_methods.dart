@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:cccd/global/global_var.dart';
 import 'package:cccd/models/direction_details.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_geofire/flutter_geofire.dart';
@@ -29,16 +31,44 @@ class CommonMethods {
     if (positionStreamHomePage != null) {
       positionStreamHomePage!.pause();
     }
+
     if (FirebaseAuth.instance.currentUser != null) {
-      Geofire.removeLocation(FirebaseAuth.instance.currentUser!.uid);
+      final String uid = FirebaseAuth.instance.currentUser!.uid;
+
+      if (kIsWeb) {
+        // Web implementation
+        final DatabaseReference onlineDriversRef =
+            FirebaseDatabase.instance.ref().child('onlineDrivers').child(uid);
+
+        // Remove the driver's location data
+        onlineDriversRef.remove();
+      } else {
+        // Mobile implementation using GeoFire
+        Geofire.removeLocation(uid);
+      }
     }
   }
 
   void turnOnLocationUpdatesForHomepage() {
     if (positionStreamHomePage != null && driverCurrentPosition != null) {
       positionStreamHomePage!.resume();
-      Geofire.setLocation(FirebaseAuth.instance.currentUser!.uid,
-          driverCurrentPosition!.latitude, driverCurrentPosition!.longitude);
+      final String uid = FirebaseAuth.instance.currentUser!.uid;
+
+      if (kIsWeb) {
+        // Web implementation
+        final DatabaseReference onlineDriversRef =
+            FirebaseDatabase.instance.ref().child('onlineDrivers').child(uid);
+
+        // Set the driver's location data
+        onlineDriversRef.set({
+          'latitude': driverCurrentPosition!.latitude,
+          'longitude': driverCurrentPosition!.longitude,
+        });
+      } else {
+        // Mobile implementation using GeoFire
+        Geofire.setLocation(uid, driverCurrentPosition!.latitude,
+            driverCurrentPosition!.longitude);
+      }
     } else {
       // Handle the case where positionStreamHomePage or driverCurrentPosition is null
       print('Error: positionStreamHomePage or driverCurrentPosition is null');
