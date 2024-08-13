@@ -42,7 +42,7 @@ class PushNotificationSystem {
         DatabaseReference referenceOnlineDriver = FirebaseDatabase.instance
             .ref()
             .child("drivers")
-            .child(user!.uid)
+            .child(FirebaseAuth.instance.currentUser!.uid)
             .child("deviceToken");
 
         print(deviceToken);

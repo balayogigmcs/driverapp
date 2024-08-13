@@ -34,7 +34,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     initializeStatus();
     retrieveCurrentDriverInfo();
-    initializePushNotificationSystem();
     if (kIsWeb) {
       checkWebPermissionsAndLoadMap();
     } else {
@@ -133,119 +132,158 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       print('Error in getting current location: $e');
     }
   }
+
   void goOnlineNow() {
-  final String uid = FirebaseAuth.instance.currentUser!.uid;
+    if (kIsWeb) {
+      // Realtime Database reference
+      DatabaseReference driversRef = FirebaseDatabase.instance
+          .ref()
+          .child('onlineDrivers')
+          .child(FirebaseAuth.instance.currentUser!.uid);
 
-  if (kIsWeb) {
-    // Web implementation without GeoFire
-    final DatabaseReference ref = FirebaseDatabase.instance
-        .ref()
-        .child('onlineDrivers')
-        .child(uid);
+      // Storing location in Realtime Database
+      driversRef.update({
+        'latitude': currentPositionOfDriver!.latitude,
+        'longitude': currentPositionOfDriver!.longitude,
+      });
 
-    ref.update({
-      'latitude': currentPositionOfDriver!.latitude,
-      'longitude': currentPositionOfDriver!.longitude,
-    });
+      // Set status in the drivers collection
+      DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+          .ref()
+          .child("drivers")
+          .child(FirebaseAuth.instance.currentUser!.uid)
+          .child("newTripStatus");
 
-    DatabaseReference newTripRequestReference = FirebaseDatabase.instance
-        .ref()
-        .child("drivers")
-        .child(uid)
-        .child("newTripStatus");
-
-
-    newTripRequestReference.child('newTripStatus').onValue.listen((event) {
-      // Handle changes in newTripStatus
-      String? newStatus = event.snapshot.value as String?;
-      if (newStatus != null) {
-        // Handle the status change accordingly
+      newTripRequestReference.set("waiting");
+      newTripRequestReference.onValue.listen((event) {
+        if (event.snapshot.exists) {
+        print("newTripStatus is still present: ${event.snapshot.value}");
+      } else {
+        print("newTripStatus has been removed!");
       }
-    });
-  } else {
-    // Mobile implementation using GeoFire
-    Geofire.initialize("onlineDrivers");
-    Geofire.setLocation(uid, currentPositionOfDriver!.latitude,
-        currentPositionOfDriver!.longitude);
+      });
+      // Web implementation without GeoFire
+      // final DatabaseReference ref = FirebaseDatabase.instance
+      //     .ref()
+      //     .child('onlineDrivers')
+      //     .child(uid);
 
-    DatabaseReference newTripRequestReference = FirebaseDatabase.instance
-        .ref()
-        .child("drivers")
-        .child(uid)
-        .child("newTripStatus");
+      // ref.update({
+      //   'latitude': currentPositionOfDriver!.latitude,
+      //   'longitude': currentPositionOfDriver!.longitude,
+      // });
 
-    newTripRequestReference.set("waiting");
-    newTripRequestReference.onValue.listen((event) {
-      // Handle changes in newTripStatus
+      // DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+      //     .ref()
+      //     .child("drivers")
+      //     .child(uid)
+      //     .child("newTripStatus");
+
+      // newTripRequestReference.child('newTripStatus').onValue.listen((event) {
+      //   // Handle changes in newTripStatus
+      //   String? newStatus = event.snapshot.value as String?;
+      //   if (newStatus != null) {
+      //     // Handle the status change accordingly
+      //   }
+      // });
+    } else {
+      // Mobile implementation using GeoFire
+      Geofire.initialize("onlineDrivers");
+      Geofire.setLocation(
+          FirebaseAuth.instance.currentUser!.uid,
+          currentPositionOfDriver!.latitude,
+          currentPositionOfDriver!.longitude);
+
+      DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+          .ref()
+          .child("drivers")
+          .child(FirebaseAuth.instance.currentUser!.uid)
+          .child("newTripStatus");
+
+      newTripRequestReference.set("waiting");
+      newTripRequestReference.onValue.listen((event) {
+        // Handle changes in newTripStatus
+      });
+    }
+  }
+
+  void setAndGetLocationUpdates() {
+    positionStreamHomePage =
+        Geolocator.getPositionStream().listen((Position position) {
+      currentPositionOfDriver = position;
+
+      if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
+        if (kIsWeb) {
+          // Web implementation
+          final DatabaseReference ref = FirebaseDatabase.instance
+              .ref()
+              .child('onlineDrivers')
+              .child(FirebaseAuth.instance.currentUser!.uid);
+
+          ref.update({
+            'latitude': position.latitude,
+            'longitude': position.longitude,
+          });
+        } else {
+          // Mobile implementation using GeoFire
+          Geofire.setLocation(
+              FirebaseAuth.instance.currentUser!.uid,
+              currentPositionOfDriver!.latitude,
+              currentPositionOfDriver!.longitude);
+        }
+      }
+
+      LatLng positionLatLng = LatLng(currentPositionOfDriver!.latitude,
+          currentPositionOfDriver!.longitude);
+
+      controllerGoogleMap!
+          .animateCamera(CameraUpdate.newLatLng(positionLatLng));
     });
   }
-}
 
-void setAndGetLocationUpdates() {
-  positionStreamHomePage =
-      Geolocator.getPositionStream().listen((Position position) {
-    currentPositionOfDriver = position;
-
-    if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
-      final String uid = FirebaseAuth.instance.currentUser!.uid;
-
-      if (kIsWeb) {
-        // Web implementation
-        final DatabaseReference ref =
-            FirebaseDatabase.instance.ref().child('onlineDrivers').child(uid);
-
-        ref.update({
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-        });
-      } else {
-        // Mobile implementation using GeoFire
-        Geofire.setLocation(uid, currentPositionOfDriver!.latitude,
-            currentPositionOfDriver!.longitude);
-      }
-    }
-
-    LatLng positionLatLng = LatLng(
-        currentPositionOfDriver!.latitude, currentPositionOfDriver!.longitude);
-
-    controllerGoogleMap!
-        .animateCamera(CameraUpdate.newLatLng(positionLatLng));
-  });
-}
-
-void goOfflineNow() {
-  final String uid = FirebaseAuth.instance.currentUser!.uid;
-
+  void goOfflineNow() {
   if (kIsWeb) {
     // Web implementation
-    final DatabaseReference onlineDriversRef =
-        FirebaseDatabase.instance.ref().child('onlineDrivers').child(uid);
+    final DatabaseReference onlineDriversRef = FirebaseDatabase.instance
+        .ref()
+        .child('onlineDrivers')
+        .child(FirebaseAuth.instance.currentUser!.uid);
 
     // Remove the driver's newTripStatus and location data
-    onlineDriversRef.remove();
-    final DatabaseReference ref =
-        FirebaseDatabase.instance.ref().child('drivers').child(uid).child('newTripStatus');
+    onlineDriversRef.remove().then((_) {
+      final DatabaseReference ref = FirebaseDatabase.instance
+          .ref()
+          .child('drivers')
+          .child(FirebaseAuth.instance.currentUser!.uid)
+          .child('newTripStatus');
 
-    ref.onDisconnect().remove();
-
-    Provider.of<DriverStatusProvider>(context, listen: false).setOffline();
+      ref.remove().then((_) {
+        Provider.of<DriverStatusProvider>(context, listen: false).setOffline();
+      }).catchError((error) {
+        print("Failed to remove newTripStatus: $error");
+      });
+    }).catchError((error) {
+      print("Failed to remove online driver data: $error");
+    });
   } else {
     // Mobile implementation using GeoFire
-    Geofire.removeLocation(uid);
+    Geofire.removeLocation(FirebaseAuth.instance.currentUser!.uid).then((_) {
+      DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+          .ref()
+          .child("drivers")
+          .child(FirebaseAuth.instance.currentUser!.uid)
+          .child("newTripStatus");
 
-    DatabaseReference newTripRequestReference = FirebaseDatabase.instance
-        .ref()
-        .child("drivers")
-        .child(uid)
-        .child("newTripStatus");
-
-    newTripRequestReference.onDisconnect().remove();
-
-    Provider.of<DriverStatusProvider>(context, listen: false).setOffline();
+      newTripRequestReference.remove().then((_) {
+        Provider.of<DriverStatusProvider>(context, listen: false).setOffline();
+      }).catchError((error) {
+        print("Failed to remove newTripStatus: $error");
+      });
+    }).catchError((error) {
+      print("Failed to remove location: $error");
+    });
   }
 }
-
-
   void initializePushNotificationSystem() {
     PushNotificationSystem notificationSystem = PushNotificationSystem();
     notificationSystem.generateDeviceRegistrationToken();
@@ -253,34 +291,34 @@ void goOfflineNow() {
   }
 
   void retrieveCurrentDriverInfo() async {
-  try {
-    DatabaseEvent event = await FirebaseDatabase.instance
-        .ref()
-        .child("drivers")
-        .child(FirebaseAuth.instance.currentUser!.uid)
-        .once();
+    try {
+      DatabaseEvent event = await FirebaseDatabase.instance
+          .ref()
+          .child("drivers")
+          .child(FirebaseAuth.instance.currentUser!.uid)
+          .once();
 
-    DataSnapshot snap = event.snapshot;
-    if (snap.value != null) {
-      // Correctly casting the LinkedMap<Object?, Object?> to Map<String, dynamic>
-      final Map<String, dynamic>? driverData = Map<String, dynamic>.from(snap.value as Map);
+      DataSnapshot snap = event.snapshot;
+      if (snap.value != null) {
+        // Correctly casting the LinkedMap<Object?, Object?> to Map<String, dynamic>
+        final Map<String, dynamic>? driverData =
+            Map<String, dynamic>.from(snap.value as Map);
 
-      if (driverData != null) {
-        driverName = driverData["name"] ?? 'Unknown';
-        driverPhone = driverData["phone"] ?? 'Unknown';
-        driverPhoto = driverData["photo"] ?? 'Unknown';
-        carColor = driverData["car details"]?["car-color"] ?? 'Unknown';
-        carModel = driverData["car details"]?["car-model"] ?? 'Unknown';
-        carNumber = driverData["car details"]?["car-number"] ?? 'Unknown';
+        if (driverData != null) {
+          driverName = driverData["name"] ?? 'Unknown';
+          driverPhone = driverData["phone"] ?? 'Unknown';
+          driverPhoto = driverData["photo"] ?? 'Unknown';
+          carColor = driverData["car details"]?["car-color"] ?? 'Unknown';
+          carModel = driverData["car details"]?["car-model"] ?? 'Unknown';
+          carNumber = driverData["car details"]?["car-number"] ?? 'Unknown';
+        }
       }
+
+      initializePushNotificationSystem();
+    } catch (e) {
+      print('Error in retrieveCurrentDriverInfo: $e');
     }
-
-    initializePushNotificationSystem();
-  } catch (e) {
-    print('Error in retrieveCurrentDriverInfo: $e');
   }
-}
-
 
   void initializeStatus() async {
     await Provider.of<DriverStatusProvider>(context, listen: false)
