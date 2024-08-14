@@ -52,11 +52,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.paused) {
       // App is in background, do nothing to keep the status the same
-    } else if (state == AppLifecycleState.detached ||
-        state == AppLifecycleState.inactive) {
-      // App is being closed or terminated, set status to offline
-      if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
-        goOfflineNow();
+    } else if (mounted) {
+      if (state == AppLifecycleState.detached ||
+          state == AppLifecycleState.inactive) {
+        // App is being closed or terminated, set status to offline
+        if (Provider.of<DriverStatusProvider>(context, listen: false)
+            .isOnline) {
+          goOfflineNow();
+        }
       }
     }
   }
@@ -157,10 +160,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       newTripRequestReference.set("waiting");
       newTripRequestReference.onValue.listen((event) {
         if (event.snapshot.exists) {
-        print("newTripStatus is still present: ${event.snapshot.value}");
-      } else {
-        print("newTripStatus has been removed!");
-      }
+          print("newTripStatus is still present: ${event.snapshot.value}");
+        } else {
+          print("newTripStatus has been removed!");
+        }
       });
       // Web implementation without GeoFire
       // final DatabaseReference ref = FirebaseDatabase.instance
@@ -206,88 +209,130 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       });
     }
   }
-
   void setAndGetLocationUpdates() {
-    positionStreamHomePage =
-        Geolocator.getPositionStream().listen((Position position) {
+  positionStreamHomePage =
+      Geolocator.getPositionStream().listen((Position position) {
+    if (!mounted) return;
+
+    setState(() {
       currentPositionOfDriver = position;
-
-      if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
-        if (kIsWeb) {
-          // Web implementation
-          final DatabaseReference ref = FirebaseDatabase.instance
-              .ref()
-              .child('onlineDrivers')
-              .child(FirebaseAuth.instance.currentUser!.uid);
-
-          ref.update({
-            'latitude': position.latitude,
-            'longitude': position.longitude,
-          });
-        } else {
-          // Mobile implementation using GeoFire
-          Geofire.setLocation(
-              FirebaseAuth.instance.currentUser!.uid,
-              currentPositionOfDriver!.latitude,
-              currentPositionOfDriver!.longitude);
-        }
-      }
-
-      LatLng positionLatLng = LatLng(currentPositionOfDriver!.latitude,
-          currentPositionOfDriver!.longitude);
-
-      controllerGoogleMap!
-          .animateCamera(CameraUpdate.newLatLng(positionLatLng));
     });
-  }
+
+    if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
+      if (kIsWeb) {
+        final DatabaseReference ref = FirebaseDatabase.instance
+            .ref()
+            .child('onlineDrivers')
+            .child(FirebaseAuth.instance.currentUser!.uid);
+
+        ref.update({
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+        });
+      } else {
+        Geofire.setLocation(
+            FirebaseAuth.instance.currentUser!.uid,
+            currentPositionOfDriver!.latitude,
+            currentPositionOfDriver!.longitude);
+      }
+    }
+
+    if (controllerGoogleMap != null) {
+      LatLng positionLatLng = LatLng(
+          currentPositionOfDriver!.latitude, currentPositionOfDriver!.longitude);
+
+      controllerGoogleMap!.animateCamera(CameraUpdate.newLatLng(positionLatLng));
+    }
+  });
+}
+
+
+  // // void setAndGetLocationUpdates() {
+  // //   positionStreamHomePage =
+  // //       Geolocator.getPositionStream().listen((Position position) {
+  // //     currentPositionOfDriver = position;
+
+  // //     if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
+  // //       if (kIsWeb) {
+  // //         // Web implementation
+  // //         final DatabaseReference ref = FirebaseDatabase.instance
+  // //             .ref()
+  // //             .child('onlineDrivers')
+  // //             .child(FirebaseAuth.instance.currentUser!.uid);
+
+  // //         ref.update({
+  // //           'latitude': position.latitude,
+  // //           'longitude': position.longitude,
+  // //         });
+  // //       } else {
+  // //         // Mobile implementation using GeoFire
+  // //         Geofire.setLocation(
+  // //             FirebaseAuth.instance.currentUser!.uid,
+  // //             currentPositionOfDriver!.latitude,
+  // //             currentPositionOfDriver!.longitude);
+  // //       }
+  // //     }
+
+  //     LatLng positionLatLng = LatLng(currentPositionOfDriver!.latitude,
+  //         currentPositionOfDriver!.longitude);
+
+  //     controllerGoogleMap!
+  //         .animateCamera(CameraUpdate.newLatLng(positionLatLng));
+  //   });
+  // }
 
   void goOfflineNow() {
-  if (kIsWeb) {
-    // Web implementation
-    final DatabaseReference onlineDriversRef = FirebaseDatabase.instance
-        .ref()
-        .child('onlineDrivers')
-        .child(FirebaseAuth.instance.currentUser!.uid);
-
-    // Remove the driver's newTripStatus and location data
-    onlineDriversRef.remove().then((_) {
-      final DatabaseReference ref = FirebaseDatabase.instance
+    if (kIsWeb) {
+      // Web implementation
+      final DatabaseReference onlineDriversRef = FirebaseDatabase.instance
           .ref()
-          .child('drivers')
-          .child(FirebaseAuth.instance.currentUser!.uid)
-          .child('newTripStatus');
+          .child('onlineDrivers')
+          .child(FirebaseAuth.instance.currentUser!.uid);
 
-      ref.remove().then((_) {
-        Provider.of<DriverStatusProvider>(context, listen: false).setOffline();
-      }).catchError((error) {
-        print("Failed to remove newTripStatus: $error");
-      });
-    }).catchError((error) {
-      print("Failed to remove online driver data: $error");
-    });
-  } else {
-    // Mobile implementation using GeoFire
-    Geofire.removeLocation(FirebaseAuth.instance.currentUser!.uid).then((_) {
-      DatabaseReference newTripRequestReference = FirebaseDatabase.instance
-          .ref()
-          .child("drivers")
-          .child(FirebaseAuth.instance.currentUser!.uid)
-          .child("newTripStatus");
+      // Remove the driver's newTripStatus and location data
+      onlineDriversRef.remove().then((_) {
+        final DatabaseReference ref = FirebaseDatabase.instance
+            .ref()
+            .child('drivers')
+            .child(FirebaseAuth.instance.currentUser!.uid)
+            .child('newTripStatus');
 
-      newTripRequestReference.remove().then((_) {
-        Provider.of<DriverStatusProvider>(context, listen: false).setOffline();
+        ref.remove().then((_) {
+          Provider.of<DriverStatusProvider>(context, listen: false)
+              .setOffline();
+        }).catchError((error) {
+          print("Failed to remove newTripStatus: $error");
+        });
       }).catchError((error) {
-        print("Failed to remove newTripStatus: $error");
+        print("Failed to remove online driver data: $error");
       });
-    }).catchError((error) {
-      print("Failed to remove location: $error");
-    });
+    } else {
+      // Mobile implementation using GeoFire
+      Geofire.removeLocation(FirebaseAuth.instance.currentUser!.uid).then((_) {
+        DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+            .ref()
+            .child("drivers")
+            .child(FirebaseAuth.instance.currentUser!.uid)
+            .child("newTripStatus");
+
+        newTripRequestReference.remove().then((_) {
+          Provider.of<DriverStatusProvider>(context, listen: false)
+              .setOffline();
+        }).catchError((error) {
+          print("Failed to remove newTripStatus: $error");
+        });
+      }).catchError((error) {
+        print("Failed to remove location: $error");
+      });
+    }
   }
-}
+
   void initializePushNotificationSystem() {
-    PushNotificationSystem notificationSystem = PushNotificationSystem();
-    notificationSystem.generateDeviceRegistrationToken();
-    notificationSystem.startListeningForNewNotifications(context);
+    if (mounted) {
+      PushNotificationSystem notificationSystem = PushNotificationSystem();
+      notificationSystem.generateDeviceRegistrationToken();
+      notificationSystem.startListeningForNewNotifications(context);
+    }
   }
 
   void retrieveCurrentDriverInfo() async {
@@ -308,6 +353,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           driverName = driverData["name"] ?? 'Unknown';
           driverPhone = driverData["phone"] ?? 'Unknown';
           driverPhoto = driverData["photo"] ?? 'Unknown';
+          print(driverPhoto);
           carColor = driverData["car details"]?["car-color"] ?? 'Unknown';
           carModel = driverData["car details"]?["car-model"] ?? 'Unknown';
           carNumber = driverData["car details"]?["car-number"] ?? 'Unknown';

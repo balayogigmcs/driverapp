@@ -104,14 +104,19 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     Reference referenceImage =
         FirebaseStorage.instance.ref().child("images").child(imageIdName);
 
-    if (kIsWeb) {
-      final snapshot =
-          await referenceImage.putData(await imageFile.readAsBytes());
-      return await snapshot.ref.getDownloadURL();
-    } else {
-      UploadTask uploadTask = referenceImage.putFile(File(imageFile.path));
-      TaskSnapshot snapshot = await uploadTask;
-      return await snapshot.ref.getDownloadURL();
+    try {
+      if (kIsWeb) {
+        final snapshot =
+            await referenceImage.putData(await imageFile.readAsBytes());
+        return await snapshot.ref.getDownloadURL();
+      } else {
+        UploadTask uploadTask = referenceImage.putFile(File(imageFile.path));
+        TaskSnapshot snapshot = await uploadTask;
+        return await snapshot.ref.getDownloadURL();
+      }
+    } catch (error) {
+      print("Error uploading image: $error");
+      return '';
     }
   }
 
@@ -139,18 +144,15 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       height: 160,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        image: driverPhoto != null
+                        image: driverPhotoBytes != null
                             ? DecorationImage(
-                                image: driverPhoto != null
-                                    ? (kIsWeb
-                                        ? MemoryImage(driverPhotoBytes!)
-                                        : FileImage(File(driverPhoto!.path))
-                                            as ImageProvider)
-                                    : AssetImage('assets/logo.png')
-                                        as ImageProvider, // Fallback image
+                                image: MemoryImage(driverPhotoBytes!),
                                 fit: BoxFit.cover,
                               )
-                            : null,
+                            : DecorationImage(
+                                image: AssetImage('assets/images/logo.png'),
+                                fit: BoxFit.cover,
+                              ),
                         color: Colors.grey,
                       ),
                       child: driverPhoto == null
@@ -322,7 +324,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               driversLicensePhoto == null
                   ? Text('No image selected.')
                   : kIsWeb
-                      ? Image.network(driversLicensePhoto!.path, height: 100)
+                      ? Image.network(driversLicensePhoto!.path, height: 100,
+                          errorBuilder: (context, error, stackTrace) {
+                          return Text('Could not load image');
+                        })
                       : Image.file(File(driversLicensePhoto!.path),
                           height: 100),
               const SizedBox(height: 10),
@@ -336,7 +341,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               vehicleInsurancePhoto == null
                   ? Text('No image selected.')
                   : kIsWeb
-                      ? Image.network(vehicleInsurancePhoto!.path, height: 100)
+                      ? Image.network(vehicleInsurancePhoto!.path, height: 100,
+                          errorBuilder: (context, error, stackTrace) {
+                          return Text('Could not load image');
+                        })
                       : Image.file(File(vehicleInsurancePhoto!.path),
                           height: 100),
               const SizedBox(height: 10),
@@ -449,7 +457,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
         };
 
         Map<String, dynamic> profileCompletionData = {
-          'name': widget.driverfirstname + widget.driverlastname,
+          'name': widget.driverfirstname + " " + widget.driverlastname,
           'email': widget.email,
           'phone': widget.phone,
           'date_of_birth': dateOfBirthTextEditingController.text,
@@ -486,6 +494,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     }
   }
 }
+
 
 // import 'dart:async';
 // import 'dart:io';
