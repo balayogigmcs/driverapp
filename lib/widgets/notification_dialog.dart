@@ -59,17 +59,22 @@ class _NotificationDialogState extends State<NotificationDialog> {
   }
 
   void checkAvailablityOfTripRequest(BuildContext context) async {
+    print("enter into checkAvailabilityOfTripRequest");
     showDialog(
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) =>
             LoadingDialog(messageText: 'Please wait ....'));
 
+    print("show Dialog");
+
     DatabaseReference driverTripStatusRef = FirebaseDatabase.instance
         .ref()
         .child("drivers")
         .child(FirebaseAuth.instance.currentUser!.uid)
         .child("newTripStatus");
+
+    print(driverTripStatusRef);
 
     await driverTripStatusRef.once().then((snap) {
       if (mounted) {
@@ -80,7 +85,9 @@ class _NotificationDialogState extends State<NotificationDialog> {
       String newTripStatusValue = "";
       if (snap.snapshot.value != null) {
         newTripStatusValue = snap.snapshot.value.toString();
+        print(newTripStatusValue);
       } else {
+        print("newTripStatusValue is Zero");
         cMethods.displaySnackbar("Trip Request Not found", context);
       }
 
