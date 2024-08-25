@@ -74,45 +74,58 @@ class _NotificationDialogState extends State<NotificationDialog> {
         .child(FirebaseAuth.instance.currentUser!.uid)
         .child("newTripStatus");
 
-    print(driverTripStatusRef);
+    print("DatabaseReference created: $driverTripStatusRef");
 
-    await driverTripStatusRef.once().then((snap) {
-      if (mounted) {
-        Navigator.pop(context);
-        Navigator.pop(context);
-      }
+    try {
+        await driverTripStatusRef.once().then((snap) {
+            if (mounted) {
+                Navigator.pop(context);
+                Navigator.pop(context);
+            }
 
-      String newTripStatusValue = "";
-      if (snap.snapshot.value != null) {
-        newTripStatusValue = snap.snapshot.value.toString();
-        print(newTripStatusValue);
-      } else {
-        print("newTripStatusValue is Zero");
-        cMethods.displaySnackbar("Trip Request Not found", context);
-      }
+            String newTripStatusValue = "";
+            if (snap.snapshot.value != null) {
+                newTripStatusValue = snap.snapshot.value.toString();
+                print("newTripStatusValue retrieved: $newTripStatusValue");
+            } else {
+                print("newTripStatusValue is Zero");
+                cMethods.displaySnackbar("Trip Request Not found", context);
+            }
 
-      if (newTripStatusValue == widget.tripDetailsInfo!.tripID) {
-        driverTripStatusRef.set("accepted");
+            if (newTripStatusValue == widget.tripDetailsInfo!.tripID) {
+                print("TripID matches: ${widget.tripDetailsInfo!.tripID}");
+                driverTripStatusRef.set("accepted").then((_) {
+                    print("Trip status set to accepted");
+                }).catchError((error) {
+                    print("Error setting trip status to accepted: $error");
+                });
 
-        // disable homepage location updates
-        cMethods.turnOffLocationUpdatesForHomepage();
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (BuildContext context) =>
-                    NewTripPage(newTripDetailInfo: widget.tripDetailsInfo)));
-      } else if (newTripStatusValue == "cancelled") {
-        cMethods.displaySnackbar(
-            "Trip request has been Cancelled by User", context);
-      } else if (newTripStatusValue == "timeout") {
-        cMethods.displaySnackbar("Trip request Timeout", context);
-      } else {
-        cMethods.displaySnackbar("Trip request removed, Not Found", context);
-      }
-    });
-  }
-
-  @override
+                // disable homepage location updates
+                cMethods.turnOffLocationUpdatesForHomepage();
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (BuildContext context) =>
+                            NewTripPage(newTripDetailInfo: widget.tripDetailsInfo)));
+            } else if (newTripStatusValue == "cancelled") {
+                print("Trip request has been Cancelled by User");
+                cMethods.displaySnackbar(
+                    "Trip request has been Cancelled by User", context);
+            } else if (newTripStatusValue == "timeout") {
+                print("Trip request Timeout");
+                cMethods.displaySnackbar("Trip request Timeout", context);
+            } else {
+                print("Trip request removed, Not Found");
+                cMethods.displaySnackbar("Trip request removed, Not Found", context);
+            }
+        }).catchError((error) {
+            print("Error retrieving trip status: $error");
+        });
+    } catch (e) {
+        print("Exception in checkAvailablityOfTripRequest: $e");
+    }
+}
+ @override
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(

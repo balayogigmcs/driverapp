@@ -9,7 +9,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:html' as html;
 
-
 class PushNotificationSystem {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final User? user = FirebaseAuth.instance.currentUser;
@@ -127,33 +126,58 @@ class PushNotificationSystem {
     }
   }
 
-  Future<List<Map<dynamic, dynamic>>> fetchMobilityAidData() async {
-    List<Map<dynamic, dynamic>> mobilityAidDataList = [];
-    DatabaseReference mobilityAidsRef =
-        FirebaseDatabase.instance.ref().child('mobilityAids');
-    print("Fetching mobility aid data...");
+ Future<List<Map<dynamic, dynamic>>> fetchMobilityAidData() async {
+  List<Map<dynamic, dynamic>> mobilityAidDataList = [];
+  DatabaseReference mobilityAidsRef =
+      FirebaseDatabase.instance.ref().child('mobilityAids');
+  print("Fetching mobility aid data...");
 
-    await mobilityAidsRef
+  try {
+    final mobilityAidSnap = await mobilityAidsRef
         .orderByChild('isCurrent')
         .equalTo(true)
-        .once()
-        .then((mobilityAidSnap) async {
-      final values = mobilityAidSnap.snapshot.value as Map<dynamic, dynamic>?;
-      if (values != null) {
-        mobilityAidDataList.clear(); // Clear the list before adding new data
-        values.forEach((key, value) async {
-          mobilityAidDataList.add(Map<dynamic, dynamic>.from(value));
+        .once();
 
-          // Update the fetched record to set isCurrent to false
+    final values = mobilityAidSnap.snapshot.value as Map<dynamic, dynamic>?;
+    if (values != null) {
+      print("Mobility aid data fetched: $values");
+      mobilityAidDataList.clear(); // Clear the list before adding new data
+
+      for (var entry in values.entries) {
+        final key = entry.key;
+        final value = entry.value;
+
+        print("Processing mobility aid data for key: $key with value: $value");
+
+        // Log the timestamp field to ensure its format
+        if (value['timestamp'] != null) {
+          print(
+              "Fetched timestamp: ${value['timestamp']} (Type: ${value['timestamp'].runtimeType})");
+        }
+
+        mobilityAidDataList.add(Map<dynamic, dynamic>.from(value));
+
+        // Log the update data
+        print(
+            "Attempting to update isCurrent to false for key: $key with data: {'isCurrent': false}");
+
+        try {
           await mobilityAidsRef.child(key).update({'isCurrent': false});
-        });
+          print("Updated isCurrent to false for key: $key");
+        } catch (error) {
+          print("Error updating isCurrent to false for key $key: $error");
+        }
       }
-      print('Fetched mobility aid data: $mobilityAidDataList'); // Debugging log
-    }).catchError((error) {
-      print('Error fetching mobility aid data: $error'); // Debugging log
-    });
-    return mobilityAidDataList;
+    } else {
+      print("No current mobility aid data found.");
+    }
+  } catch (error) {
+    print('Error fetching mobility aid data: $error');
   }
+
+  print('Fetched mobility aid data: $mobilityAidDataList'); // Debugging log
+  return mobilityAidDataList;
+}
 }
 
 // Future<List<Map<dynamic, dynamic>>> fetchMobilityAidData() async {
