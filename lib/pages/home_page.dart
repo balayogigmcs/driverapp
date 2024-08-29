@@ -34,7 +34,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // initializeStatus();
+    print("retrieveCurrentDriverInfo in initstate");
     retrieveCurrentDriverInfo();
+    print("getCurrentLiveLocationOfDriver in initstate");
     getCurrentLiveLocationOfDriver();
     // if (kIsWeb) {
     //   print("checkWebPermissionsAndAMap");
@@ -320,6 +322,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Future<void> initializePushNotificationSystem() async {
+    print("entered into initializePushNotificationSystem");
     if (mounted) {
       PushNotificationSystem notificationSystem = PushNotificationSystem();
       print("before generate device registation token");

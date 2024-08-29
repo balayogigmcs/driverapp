@@ -43,6 +43,7 @@ class _NewTripPageState extends State<NewTripPage> {
   CommonMethods cmethods = CommonMethods();
 
   makeMarker() {
+    print("entered into makeMarker");
     if (carMarkerIcon == null) {
       ImageConfiguration configuration =
           createLocalImageConfiguration(context, size: Size(0.5, 0.5));
@@ -57,6 +58,7 @@ class _NewTripPageState extends State<NewTripPage> {
   }
 
   obtainDirectionAndDrawRoute(sourceLocationLatLng, destinationLocationLatLng) async {
+    print("entered into obtainDirectionAndDrawRoute");
     showDialog(
         context: context,
         barrierDismissible: false,
@@ -173,6 +175,7 @@ class _NewTripPageState extends State<NewTripPage> {
   }
 
   getLiveLocationUpdatesOfDriver() {
+    print("entered into getLiveLocationUpdatesOfDriver");
     positionStreamNewTripPage =
         Geolocator.getPositionStream().listen((Position positionDriver) {
       // Update driver's current position
@@ -221,6 +224,7 @@ class _NewTripPageState extends State<NewTripPage> {
   }
 
   updateTripDetailsInformation() async {
+    print("entered into updateTripDetailsInformation");
     if (!directionRequested) {
       directionRequested = true;
 
@@ -235,7 +239,9 @@ class _NewTripPageState extends State<NewTripPage> {
       LatLng dropOffDestinationLocationLatLng;
       if (statusOfTrip == "accepted") {
         dropOffDestinationLocationLatLng =
-            widget.newTripDetailInfo!.pickUpLatLng!;
+            (widget.newTripDetailInfo!.pickUpLatLng!);
+        print(widget.newTripDetailInfo!.pickUpLatLng);
+        print(widget.newTripDetailInfo!.pickUpLatLng.runtimeType);
       } else {
         dropOffDestinationLocationLatLng =
             widget.newTripDetailInfo!.dropOffLatLng!;
@@ -255,6 +261,7 @@ class _NewTripPageState extends State<NewTripPage> {
   }
 
   endTripNow() async {
+    print("entered into endTripnow");
     showDialog(
         context: context,
         barrierDismissible: false,
@@ -306,6 +313,7 @@ class _NewTripPageState extends State<NewTripPage> {
   }
 
   saveFareAmountToDriverTotalEarnings(String fareAmount) async {
+    print("entered into saveFareAmountToDriverTotalEarnings");
     DatabaseReference driverEarningsRef = FirebaseDatabase.instance
         .ref()
         .child("drivers")
@@ -327,6 +335,7 @@ class _NewTripPageState extends State<NewTripPage> {
   }
 
   saveDriverDataToTripInfo() async {
+    print("entered into saveDriverDataToTripInfo");
     if (FirebaseAuth.instance.currentUser != null && widget.newTripDetailInfo != null) {
       Map<String, dynamic> driverDataMap = {
         "status": "accepted",
@@ -339,7 +348,7 @@ class _NewTripPageState extends State<NewTripPage> {
 
       Map<String, dynamic> driverCurrentLocation = {
         "latitude": driverCurrentPosition!.latitude.toString(),
-        "longitude": driverCurrentPosition!.longitude.toString()
+        "longitude": driverCurrentPosition!.longitude.toString(),
       };
 
       await FirebaseDatabase.instance
@@ -361,13 +370,19 @@ class _NewTripPageState extends State<NewTripPage> {
   void initState() {
     super.initState();
     if (mounted) {
+      print("before saveDriverDataToTripInfo");
+      print(driverCurrentPosition!.latitude);
+      print(driverCurrentPosition!.longitude);
       saveDriverDataToTripInfo();
+      print("after saveDriverDataToTripInfo in initState");
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    print("before makeMarker is called");
     makeMarker();
+    print("after makeMarker is called");
     return Scaffold(
       body: Stack(
         children: [
@@ -396,11 +411,13 @@ class _NewTripPageState extends State<NewTripPage> {
 
               var userPickUpLocationLatLng =
                   widget.newTripDetailInfo!.pickUpLatLng;
-
+ print("before obtainDirectionAndDrawRoute called");
               await obtainDirectionAndDrawRoute(
                   driverCurrentLocationLatLng, userPickUpLocationLatLng);
-
+                  print("before obtainDirectionAndDrawRoute called");
+print("before getLiveLocationUpdatesOfDriver");
               getLiveLocationUpdatesOfDriver();
+              print("after getLiveLocationUpdatesOfDriver");
             },
           ),
 

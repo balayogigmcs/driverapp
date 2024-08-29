@@ -10,9 +10,10 @@ import 'package:cccd/widgets/loading_dialog.dart';
 
 class NotificationDialog extends StatefulWidget {
   final TripDetails? tripDetailsInfo;
-  final List<Map<dynamic, dynamic>> mobilityAidDataList;
+  // final List<Map<dynamic, dynamic>> mobilityAidDataList;
 
-  NotificationDialog({super.key, this.tripDetailsInfo, required this.mobilityAidDataList});
+  // NotificationDialog({super.key, this.tripDetailsInfo, required this.mobilityAidDataList});
+  NotificationDialog({super.key, this.tripDetailsInfo});
 
   @override
   State<NotificationDialog> createState() => _NotificationDialogState();
@@ -27,7 +28,9 @@ class _NotificationDialogState extends State<NotificationDialog> {
   @override
   void initState() {
     super.initState();
-    updateMobilityAidData(widget.mobilityAidDataList);
+    print("updateMobilityAidData(widget.mobilityAidDataList) called in initState");
+    // updateMobilityAidData(widget.mobilityAidDataList);
+    print(" cancelNotificationRequestAfter20Sec(context);");
     cancelNotificationRequestAfter20Sec(context);
   }
 
