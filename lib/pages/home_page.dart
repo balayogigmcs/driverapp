@@ -35,6 +35,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     // initializeStatus();
     print("retrieveCurrentDriverInfo in initstate");
+    initializeStatus();
     retrieveCurrentDriverInfo();
     print("getCurrentLiveLocationOfDriver in initstate");
     getCurrentLiveLocationOfDriver();
@@ -53,22 +54,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     super.dispose();
   }
 
-//   @override
-// void didChangeAppLifecycleState(AppLifecycleState state) {
-//   super.didChangeAppLifecycleState(state);
-//   if (state == AppLifecycleState.paused) {
-//     // Do nothing, status remains the same
-//   } else if (mounted) {
-//     final driverStatusProvider = context.read<DriverStatusProvider>();
-//     if (state == AppLifecycleState.detached || state == AppLifecycleState.inactive) {
-//       // App is being closed or terminated, set status to offline
-//       if (driverStatusProvider.isOnline) {
-//         goOfflineNow();
-//       }
-//     }
-//   }
-// }
-
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused) {
+      // App is in background, do nothing to keep the status the same
+    } else if (mounted) {
+      if (state == AppLifecycleState.detached ||
+          state == AppLifecycleState.inactive) {
+        // App is being closed or terminated, set status to offline
+        if (Provider.of<DriverStatusProvider>(context, listen: false)
+            .isOnline) {
+          // goOfflineNow();
+        }
+      }
+    }
+  }
 
   Future<void> checkWebPermissionsAndLoadMap() async {
     await requestLocationPermissionWeb();
@@ -149,28 +150,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
     if (kIsWeb) {
       print("Pressed goOnline now");
+      // Realtime Database ference
       DatabaseReference driversRef = FirebaseDatabase.instance
           .ref()
           .child('onlineDrivers')
-          .child(FirebaseAuth.instance.currentUser?.uid ?? "");
+          .child(FirebaseAuth.instance.currentUser!.uid);
 
+      // Storing location in Realtime Database
       driversRef.update({
         'latitude': currentPositionOfDriver!.latitude,
         'longitude': currentPositionOfDriver!.longitude,
-      }).catchError((error) {
-        print('Failed to update driver location: $error');
       });
 
+      // Set status in the drivers collection
       DatabaseReference newTripRequestReference = FirebaseDatabase.instance
           .ref()
           .child("drivers")
-          .child(FirebaseAuth.instance.currentUser?.uid ?? "")
+          .child(FirebaseAuth.instance.currentUser!.uid)
           .child("newTripStatus");
 
-      newTripRequestReference.set("waiting").catchError((error) {
-        print('Failed to set newTripStatus: $error');
-      });
-
+      newTripRequestReference.set("waiting");
+      print("setted waiting");
       newTripRequestReference.onValue.listen((event) {
         if (event.snapshot.exists) {
           print("newTripStatus1 is still present: ${event.snapshot.value}");
@@ -178,6 +178,30 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           print("newTripStatus has been removed!");
         }
       });
+      // Web implementation without GeoFire
+      // final DatabaseReference ref = FirebaseDatabase.instance
+      //     .ref()
+      //     .child('onlineDrivers')
+      //     .child(uid);
+
+      // ref.update({
+      //   'latitude': currentPositionOfDriver!.latitude,
+      //   'longitude': currentPositionOfDriver!.longitude,
+      // });
+
+      // DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+      //     .ref()
+      //     .child("drivers")
+      //     .child(uid)
+      //     .child("newTripStatus");
+
+      // newTripRequestReference.child('newTripStatus').onValue.listen((event) {
+      //   // Handle changes in newTripStatus
+      //   String? newStatus = event.snapshot.value as String?;
+      //   if (newStatus != null) {
+      //     // Handle the status change accordingly
+      //   }
+      // });
     } else {
       // Mobile implementation using GeoFire
       Geofire.initialize("onlineDrivers");
@@ -365,26 +389,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
- Future<void> initializeStatus() async {
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    final driverStatusProvider = Provider.of<DriverStatusProvider>(context, listen: false);
-    driverStatusProvider.setInitialStatus();
-  });
-}
-
+  void initializeStatus() async {
+    await Provider.of<DriverStatusProvider>(context, listen: false)
+        .setInitialStatus();
+  }
 
   @override
   Widget build(BuildContext context) {
     final driverStatusProvider = Provider.of<DriverStatusProvider>(context);
     if (kIsWeb) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text("Driver Map"),
-        ),
-        drawer: Drawer(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
+  appBar: AppBar(
+    title: Text("Driver Map"),
+  ),
+  drawer: Drawer(
+    child: ListView(
+      padding: EdgeInsets.zero,
+      children:[
               const Divider(
                 height: 1,
                 color: Colors.black,
@@ -446,400 +467,178 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 height: 10,
               ),
 
-              //body
-              //Personal details
-              GestureDetector(
-                onTap: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //       builder: (context) => ProfilePage()),
-                  // );
-                },
-                child: ListTile(
-                  leading: IconButton(
-                    onPressed: () {
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //       builder: (context) => ProfilePage()),
-                      // );
-                    },
-                    icon: const Icon(
-                      Icons.person,
-                      color: Colors.black,
-                    ),
-                  ),
-                  title: const Text(
-                    "Personal details",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                ),
-              ),
+              //body 
+        // GestureDetector(
+        //         onTap: () {
+        //           Navigator.push(
+        //             context,
+        //             MaterialPageRoute(
+        //                 builder: (context) => ProfilePage()),
+        //           );
+        //         },
+        //         child: ListTile(
+        //           leading: IconButton(
+        //             onPressed: () {
+        //               Navigator.push(
+        //                 context,
+        //                 MaterialPageRoute(
+        //                     builder: (context) => ProfilePage()),
+        //               );
+        //             },
+        //             icon: const Icon(
+        //               Icons.person,
+        //               color: Colors.black,
+        //             ),
+        //           ),
+        //           title: const Text(
+        //             "Personal details",
+        //             style: TextStyle(color: Colors.black),
+        //           ),
+        //         ),
+        //       ),
 
-              // wallet
-              // GestureDetector(
-              //   onTap: () {
-              //     // Navigator.push(
-              //     //   context,
-              //     //   MaterialPageRoute(
-              //     //       builder: (context) => ProfilePage()),
-              //     // );
-              //   },
-              //   child: ListTile(
-              //     leading: IconButton(
-              //       onPressed: () {
-              //         // Navigator.push(
-              //         //   context,
-              //         //   MaterialPageRoute(
-              //         //       builder: (context) => ProfilePage()),
-              //         // );
-              //       },
-              //       icon: const Icon(
-              //         Icons.wallet,
-              //         color: Colors.black,
-              //       ),
-              //     ),
-              //     title: const Text(
-              //       "Wallet",
-              //       style: TextStyle(color: Colors.black),
-              //     ),
-              //   ),
-              // ),
 
-//Trips
-              GestureDetector(
-                onTap: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //       builder: (context) => ProfilePage()),
-                  // );
-                },
-                child: ListTile(
-                  leading: IconButton(
-                    onPressed: () {
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //       builder: (context) => ProfilePage()),
-                      // );
-                    },
-                    icon: const Icon(
-                      Icons.account_tree,
-                      color: Colors.black,
-                    ),
-                  ),
-                  title: const Text(
-                    "Trips",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                ),
-              ),
-// Earnings
-              GestureDetector(
-                onTap: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //       builder: (context) => ProfilePage()),
-                  // );
-                },
-                child: ListTile(
-                  leading: IconButton(
-                    onPressed: () {
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //       builder: (context) => ProfilePage()),
-                      // );
-                    },
-                    icon: const Icon(
-                      Icons.credit_card,
-                      color: Colors.black,
-                    ),
-                  ),
-                  title: const Text(
-                    "Earnings",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                ),
-              ),
-
-// Manage vehicles
-              GestureDetector(
-                onTap: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //       builder: (context) => ProfilePage()),
-                  // );
-                },
-                child: ListTile(
-                  leading: IconButton(
-                    onPressed: () {
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //       builder: (context) => ProfilePage()),
-                      // );
-                    },
-                    icon: const Icon(
-                      Icons.car_rental_outlined,
-                      color: Colors.black,
-                    ),
-                  ),
-                  title: const Text(
-                    "Manage Vehicles",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                ),
-              ),
-
-//manage documents
-              GestureDetector(
-                onTap: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //       builder: (context) => ProfilePage()),
-                  // );
-                },
-                child: ListTile(
-                  leading: IconButton(
-                    onPressed: () {
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //       builder: (context) => ProfilePage()),
-                      // );
-                    },
-                    icon: const Icon(
-                      Icons.edit_document,
-                      color: Colors.black,
-                    ),
-                  ),
-                  title: const Text(
-                    "Manage Documents",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                ),
-              ),
-
-//settings
-              GestureDetector(
-                onTap: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //       builder: (context) => ProfilePage()),
-                  // );
-                },
-                child: ListTile(
-                  leading: IconButton(
-                    onPressed: () {
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //       builder: (context) => ProfilePage()),
-                      // );
-                    },
-                    icon: const Icon(
-                      Icons.settings,
-                      color: Colors.black,
-                    ),
-                  ),
-                  title: const Text(
-                    "Settings",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                ),
-              ),
-
-//support
-              GestureDetector(
-                onTap: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //       builder: (context) => ProfilePage()),
-                  // );
-                },
-                child: ListTile(
-                  leading: IconButton(
-                    onPressed: () {
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //       builder: (context) => ProfilePage()),
-                      // );
-                    },
-                    icon: const Icon(
-                      Icons.support_agent,
-                      color: Colors.black,
-                    ),
-                  ),
-                  title: const Text(
-                    "Support",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                ),
-              ),
-// logout
-              GestureDetector(
-                  onTap: () {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //       builder: (context) => ProfilePage()),
-                    // );
-                  },
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    child:
-                        Text("Logout", style: TextStyle(color: Colors.black)),
-                  )),
-            ],
-          ),
-        ),
-        body: Stack(
+      ],
+    ),
+  ),
+  body: Stack(
+    children: [
+      GoogleMap(
+        padding: EdgeInsets.only(top: 136),
+        mapType: MapType.normal,
+        myLocationButtonEnabled: true,
+        myLocationEnabled: true,
+        initialCameraPosition: googlePlexInitialPositon,
+        onMapCreated: (GoogleMapController mapController) {
+          controllerGoogleMap = mapController;
+          googleMapCompleterController.complete(controllerGoogleMap);
+          checkWebPermissionsAndLoadMap();
+        },
+      ),
+      Container(
+        height: 136,
+        width: double.infinity,
+        color: Colors.black54,
+      ),
+      Positioned(
+        top: 61,
+        left: 0,
+        right: 0,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            GoogleMap(
-              padding: EdgeInsets.only(top: 136),
-              mapType: MapType.normal,
-              myLocationButtonEnabled: true,
-              myLocationEnabled: true,
-              initialCameraPosition: googlePlexInitialPositon,
-              onMapCreated: (GoogleMapController mapController) {
-                controllerGoogleMap = mapController;
-                googleMapCompleterController.complete(controllerGoogleMap);
-                checkWebPermissionsAndLoadMap();
-              },
-            ),
-            Container(
-              height: 136,
-              width: double.infinity,
-              color: Colors.black54,
-            ),
-            Positioned(
-              top: 61,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isDismissible: false,
-                        builder: (BuildContext context) {
-                          return Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(15),
-                                topRight: Radius.circular(15),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black45,
-                                  blurRadius: 5,
-                                  spreadRadius: 0.5,
-                                  offset: Offset(0.7, 0.7),
+            ElevatedButton(
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isDismissible: false,
+                  builder: (BuildContext context) {
+                    return Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(15),
+                          topRight: Radius.circular(15),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black45,
+                            blurRadius: 5,
+                            spreadRadius: 0.5,
+                            offset: Offset(0.7, 0.7),
+                          ),
+                        ],
+                      ),
+                      height: 221,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 18),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 11),
+                            Text(
+                              (!driverStatusProvider.isOnline)
+                                  ? "GO ONLINE NOW"
+                                  : "GO OFFLINE NOW",
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black),
+                            ),
+                            const SizedBox(height: 21),
+                            Text(
+                              (!driverStatusProvider.isOnline)
+                                  ? "You are about to go online, you will become available to receive notification from users,"
+                                  : "You are about to go offline, you will stop receiving new trip requests from users.",
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black),
+                            ),
+                            const SizedBox(height: 21),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text("BACK"),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          (!driverStatusProvider.isOnline)
+                                              ? Colors.green
+                                              : Colors.pink,
+                                    ),
+                                    onPressed: () {
+                                      if (!driverStatusProvider.isOnline) {
+                                        goOnlineNow();
+                                        setAndGetLocationUpdates();
+                                        Navigator.pop(context);
+                                        driverStatusProvider
+                                            .toggleOnlineStatus();
+                                      } else {
+                                        goOfflineNow();
+                                        Navigator.pop(context);
+                                        driverStatusProvider
+                                            .toggleOnlineStatus();
+                                      }
+                                    },
+                                    child: const Text("CONFIRM"),
+                                  ),
                                 ),
                               ],
-                            ),
-                            height: 221,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 24, vertical: 18),
-                              child: Column(
-                                children: [
-                                  const SizedBox(height: 11),
-                                  Text(
-                                    (!driverStatusProvider.isOnline)
-                                        ? "GO ONLINE NOW"
-                                        : "GO OFFLINE NOW",
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black),
-                                  ),
-                                  const SizedBox(height: 21),
-                                  Text(
-                                    (!driverStatusProvider.isOnline)
-                                        ? "You are about to go online, you will become available to receive notification from users,"
-                                        : "You are about to go offline, you will stop receiving new trip requests from users.",
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black),
-                                  ),
-                                  const SizedBox(height: 21),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text("BACK"),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Expanded(
-                                        child: ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                (!driverStatusProvider.isOnline)
-                                                    ? Colors.green
-                                                    : Colors.pink,
-                                          ),
-                                          onPressed: () {
-                                            if (!driverStatusProvider
-                                                .isOnline) {
-                                              goOnlineNow();
-                                              setAndGetLocationUpdates();
-                                              Navigator.pop(context);
-                                              driverStatusProvider
-                                                  .toggleOnlineStatus();
-                                            } else {
-                                              goOfflineNow();
-                                              Navigator.pop(context);
-                                              driverStatusProvider
-                                                  .toggleOnlineStatus();
-                                            }
-                                          },
-                                          child: const Text("CONFIRM"),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: driverStatusProvider.isOnline
-                          ? Colors.pink
-                          : Colors.green,
-                    ),
-                    child: Text(driverStatusProvider.isOnline
-                        ? "GO OFFLINE NOW"
-                        : "GO ONLINE NOW"),
-                  )
-                ],
+                            )
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: driverStatusProvider.isOnline
+                    ? Colors.pink
+                    : Colors.green,
               ),
-            ),
+              child: Text(driverStatusProvider.isOnline
+                  ? "GO OFFLINE NOW"
+                  : "GO ONLINE NOW"),
+            )
           ],
         ),
-      );
+      ),
+    ],
+  ),
+);
+
     } else {
       return Scaffold(
         body: Stack(
@@ -991,6 +790,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
       );
     }
+  
   }
 
   @override

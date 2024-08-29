@@ -121,14 +121,6 @@ class PushNotificationSystem {
       //     ),
       //   );
       // }
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) => NotificationDialog(
-            tripDetailsInfo: tripDetailsInfo,
-          ),
-        );
-      }
     } catch (e) {
       print('Error retrieving trip request info: $e');
     }

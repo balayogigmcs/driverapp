@@ -382,7 +382,7 @@ class _NewTripPageState extends State<NewTripPage> {
   Widget build(BuildContext context) {
     print("before makeMarker is called");
     makeMarker();
-    print("after makeMarker is called");
+    print("before makeMarker is called");
     return Scaffold(
       body: Stack(
         children: [
