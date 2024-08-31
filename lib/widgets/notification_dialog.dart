@@ -23,6 +23,8 @@ class _NotificationDialogState extends State<NotificationDialog> {
   CommonMethods cMethods = CommonMethods();
   String? selectedMobilityAid;
   List<Map<dynamic, dynamic>> displayedMobilityAidDataList = [];
+  Timer? debounceTimer;
+  bool isCheckingAvailability = false;
 
   @override
   void initState() {
@@ -37,10 +39,15 @@ class _NotificationDialogState extends State<NotificationDialog> {
     });
   }
 
-  void cancelNotificationRequestAfter20Sec(BuildContext context) {
+  cancelNotificationRequestAfter20Sec(BuildContext context) {
     const oneTickPerSecond = Duration(seconds: 1);
 
-    Timer.periodic(oneTickPerSecond, (timer) {
+    var timerCountDown = Timer.periodic(oneTickPerSecond, (timer) {
+      if (!mounted || isCheckingAvailability) {
+        timer.cancel();
+        return;
+      }
+
       driverTripRequestTimeout = driverTripRequestTimeout - 1;
 
       if (tripRequestStatus == 'accepted') {
@@ -49,7 +56,7 @@ class _NotificationDialogState extends State<NotificationDialog> {
       }
 
       if (driverTripRequestTimeout == 0) {
-        if (mounted) {
+        if (mounted && !isCheckingAvailability) {
           Navigator.pop(context);
         }
         timer.cancel();
@@ -58,15 +65,15 @@ class _NotificationDialogState extends State<NotificationDialog> {
     });
   }
 
-  void checkAvailablityOfTripRequest(BuildContext context) async {
-    print("enter into checkAvailabilityOfTripRequest");
+  Future<void> checkAvailablityOfTripRequest(BuildContext context) async {
+    if (isCheckingAvailability) return; // Prevent multiple concurrent checks
+    isCheckingAvailability = true;
+
     showDialog(
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) =>
             LoadingDialog(messageText: 'Please wait ....'));
-
-    print("show Dialog");
 
     DatabaseReference driverTripStatusRef = FirebaseDatabase.instance
         .ref()
@@ -74,20 +81,16 @@ class _NotificationDialogState extends State<NotificationDialog> {
         .child(FirebaseAuth.instance.currentUser!.uid)
         .child("newTripStatus");
 
-    print(driverTripStatusRef);
-
     await driverTripStatusRef.once().then((snap) {
+      Navigator.pop(context);
       if (mounted) {
-        Navigator.pop(context);
         Navigator.pop(context);
       }
 
       String newTripStatusValue = "";
       if (snap.snapshot.value != null) {
         newTripStatusValue = snap.snapshot.value.toString();
-        print(newTripStatusValue);
       } else {
-        print("newTripStatusValue is Zero");
         cMethods.displaySnackbar("Trip Request Not found", context);
       }
 
@@ -109,6 +112,8 @@ class _NotificationDialogState extends State<NotificationDialog> {
       } else {
         cMethods.displaySnackbar("Trip request removed, Not Found", context);
       }
+    }).whenComplete(() {
+      isCheckingAvailability = false;
     });
   }
 
@@ -145,7 +150,7 @@ class _NotificationDialogState extends State<NotificationDialog> {
               const SizedBox(
                 height: 20,
               ),
-              const Divider(
+              Divider(
                 thickness: 1,
                 height: 1,
                 color: Colors.black,
@@ -156,7 +161,7 @@ class _NotificationDialogState extends State<NotificationDialog> {
 
               // PICKUP AND DROPOFF
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 child: Column(
                   children: [
                     // PICK UP
@@ -176,7 +181,7 @@ class _NotificationDialogState extends State<NotificationDialog> {
                             widget.tripDetailsInfo?.pickUpAddress ?? 'N/A',
                             overflow: TextOverflow.ellipsis,
                             maxLines: 2,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               color: Colors.black,
                             ),
@@ -205,7 +210,7 @@ class _NotificationDialogState extends State<NotificationDialog> {
                             widget.tripDetailsInfo?.dropOffAddress ?? 'N/A',
                             overflow: TextOverflow.ellipsis,
                             maxLines: 2,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               color: Colors.black,
                             ),
@@ -219,7 +224,7 @@ class _NotificationDialogState extends State<NotificationDialog> {
               const SizedBox(
                 height: 20,
               ),
-              const Divider(
+              Divider(
                 thickness: 1,
                 height: 1,
                 color: Colors.black,
@@ -230,25 +235,22 @@ class _NotificationDialogState extends State<NotificationDialog> {
 
               // MOBILITY AID DROPDOWN
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 child: DropdownButtonFormField<String>(
                   value: selectedMobilityAid,
-                  items: displayedMobilityAidDataList
-                      .map((mobilityAid) {
-                        String mobilityAidType = mobilityAid['mobilityAidType'].toString();
-                        return DropdownMenuItem<String>(
-                          value: mobilityAidType,
-                          child: Text(mobilityAidType, style: const TextStyle(color: Colors.blue)),
-                        );
-                      })
-                      .toSet()
-                      .toList(), // Ensure unique items
+                  items: displayedMobilityAidDataList.map((mobilityAid) {
+                    return DropdownMenuItem<String>(
+                      value: mobilityAid['mobilityAidType'].toString(),
+                      child: Text(mobilityAid['mobilityAidType'].toString(),
+                          style: TextStyle(color: Colors.blue)),
+                    );
+                  }).toList(),
                   onChanged: (value) {
                     setState(() {
                       selectedMobilityAid = value;
                     });
                   },
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Select Mobility Aid',
                     border: OutlineInputBorder(),
                   ),
@@ -257,7 +259,7 @@ class _NotificationDialogState extends State<NotificationDialog> {
 
               // ACCEPT AND DECLINE BUTTON
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -269,7 +271,7 @@ class _NotificationDialogState extends State<NotificationDialog> {
                             },
                             style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.pink),
-                            child: const Text(
+                            child: Text(
                               "DECLINE",
                               style: TextStyle(color: Colors.white),
                             ))),
@@ -288,7 +290,7 @@ class _NotificationDialogState extends State<NotificationDialog> {
                             },
                             style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green),
-                            child: const Text(
+                            child: Text(
                               "ACCEPT",
                               style: TextStyle(color: Colors.white),
                             ))),

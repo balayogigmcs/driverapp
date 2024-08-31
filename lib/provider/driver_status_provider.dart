@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 
+
 class DriverStatusProvider extends ChangeNotifier {
   bool _isOnline = false;
 
@@ -41,14 +42,15 @@ class DriverStatusProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> setOnline() async {
+    _isOnline = true;
+    notifyListeners();
+    await updateDriverStatusInFirebase();
+  }
+
   Future<void> setOffline() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseDatabase.instance
-          .ref()
-          .child('drivers')
-          .child(user.uid)
-          .update({'status': 'offline'});
-    }
+    _isOnline = false;
+    notifyListeners();
+    await updateDriverStatusInFirebase();
   }
 }

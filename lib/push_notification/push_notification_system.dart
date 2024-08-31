@@ -1,46 +1,22 @@
+import 'package:assets_audio_player/assets_audio_player.dart';
+import 'package:cccd/global/global_var.dart';
 import 'package:cccd/models/trip_details.dart';
+import 'package:cccd/widgets/loading_dialog.dart';
 import 'package:cccd/widgets/notification_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:html' as html;
-
 
 class PushNotificationSystem {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final User? user = FirebaseAuth.instance.currentUser;
+  bool isProcessingTripRequest = false;
 
   Future<void> generateDeviceRegistrationToken() async {
     try {
-      String? deviceToken;
-
-      if (kIsWeb) {
-        print("Kis web");
-        // Web-specific token generation
-        deviceToken = await _firebaseMessaging.getToken();
-        print("deviceToken1");
-
-        // Register the service worker for FCM on the web
-        try {
-          await html.window.navigator.serviceWorker
-              ?.register('/firebase-messaging-sw.js');
-          print('Service worker registered successfully.');
-        } catch (e) {
-          print('Error registering service worker: $e');
-        }
-      } else {
-        // For Android & iOS
-        deviceToken = await _firebaseMessaging.getToken();
-
-        // Mobile platform: Subscribe to topics
-        await _firebaseMessaging.subscribeToTopic("drivers");
-        await _firebaseMessaging.subscribeToTopic("users");
-      }
-
+      String? deviceToken = await _firebaseMessaging.getToken();
       if (deviceToken != null) {
         DatabaseReference referenceOnlineDriver = FirebaseDatabase.instance
             .ref()
@@ -48,9 +24,10 @@ class PushNotificationSystem {
             .child(FirebaseAuth.instance.currentUser!.uid)
             .child("deviceToken");
 
-        print("reference online driver deviceToken");
-
         await referenceOnlineDriver.set(deviceToken);
+
+        _firebaseMessaging.subscribeToTopic("drivers");
+        _firebaseMessaging.subscribeToTopic("users");
       } else {
         print("Failed to get device token.");
       }
@@ -63,68 +40,81 @@ class PushNotificationSystem {
     FirebaseMessaging.instance
         .getInitialMessage()
         .then((RemoteMessage? messageRemote) {
-      if (messageRemote != null) {
+      if (messageRemote != null && !isProcessingTripRequest) {
+        isProcessingTripRequest = true;
         String tripID = messageRemote.data["tripID"];
-        retrieveTripRequestInfo(tripID, context);
+        retrieveTripRequestInfo(tripID, context).whenComplete(() {
+          isProcessingTripRequest = false;
+        });
       }
     });
 
     FirebaseMessaging.onMessage.listen((RemoteMessage? messageRemote) {
-      if (messageRemote != null) {
+      if (messageRemote != null && !isProcessingTripRequest) {
+        isProcessingTripRequest = true;
         String tripID = messageRemote.data["tripID"];
-        retrieveTripRequestInfo(tripID, context);
+        retrieveTripRequestInfo(tripID, context).whenComplete(() {
+          isProcessingTripRequest = false;
+        });
       }
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage? messageRemote) {
-      if (messageRemote != null) {
+      if (messageRemote != null && !isProcessingTripRequest) {
+        isProcessingTripRequest = true;
         String tripID = messageRemote.data["tripID"];
-        retrieveTripRequestInfo(tripID, context);
+        retrieveTripRequestInfo(tripID, context).whenComplete(() {
+          isProcessingTripRequest = false;
+        });
       }
     });
   }
 
   Future<void> retrieveTripRequestInfo(
       String tripID, BuildContext context) async {
-    // Pass the information back to the UI rather than directly manipulating it here.
-    try {
-      DatabaseReference tripRequestRef =
-          FirebaseDatabase.instance.ref().child("tripRequests").child(tripID);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) =>
+          LoadingDialog(messageText: "Getting details..."),
+    );
 
-      final dataSnapshot = await tripRequestRef.once();
-      final data = dataSnapshot.snapshot.value! as Map;
+    DatabaseReference tripRequestRef =
+        FirebaseDatabase.instance.ref().child("tripRequests").child(tripID);
+
+    await tripRequestRef.once().then((dataSnapshot) async {
+      Navigator.pop(context);
+
+      audioPlayer.open(Audio("assets/audio/alert_sound.mp3"));
 
       TripDetails tripDetailsInfo = TripDetails();
-      tripDetailsInfo.pickUpLatLng = LatLng(
-        double.parse(data["pickUpLatLng"]["latitude"]),
-        double.parse(data["pickUpLatLng"]["longitude"]),
-      );
-      tripDetailsInfo.pickUpAddress = data["pickUpAddress"];
-      tripDetailsInfo.dropOffLatLng = LatLng(
-        double.parse(data["dropOffLatLng"]["latitude"]),
-        double.parse(data["dropOffLatLng"]["longitude"]),
-      );
-      tripDetailsInfo.dropOffAddress = data["dropOffAddress"];
-      tripDetailsInfo.userName = data["userName"];
-      tripDetailsInfo.userPhone = data["userPhone"];
+
+      double pickUpLat = double.parse((dataSnapshot.snapshot.value! as Map)["pickUpLatLng"]["latitude"]);
+      double pickUpLng = double.parse((dataSnapshot.snapshot.value! as Map)["pickUpLatLng"]["longitude"]);
+
+      tripDetailsInfo.pickUpLatLng = LatLng(pickUpLat, pickUpLng);
+      tripDetailsInfo.pickUpAddress = (dataSnapshot.snapshot.value! as Map)["pickUpAddress"];
+
+      double dropOffLat = double.parse((dataSnapshot.snapshot.value! as Map)["dropOffLatLng"]["latitude"]);
+      double dropOffLng = double.parse((dataSnapshot.snapshot.value! as Map)["dropOffLatLng"]["longitude"]);
+
+      tripDetailsInfo.dropOffLatLng = LatLng(dropOffLat, dropOffLng);
+      tripDetailsInfo.dropOffAddress = (dataSnapshot.snapshot.value! as Map)["dropOffAddress"];
+
+      tripDetailsInfo.userName = (dataSnapshot.snapshot.value! as Map)["userName"];
+      tripDetailsInfo.userPhone = (dataSnapshot.snapshot.value! as Map)["userPhone"];
       tripDetailsInfo.tripID = tripID;
 
-      List<Map<dynamic, dynamic>> mobilityAidDataList =
-          await fetchMobilityAidData();
+      List<Map<dynamic, dynamic>> mobilityAidDataList = await fetchMobilityAidData();
 
-      // Return data or use a callback to pass this info back to the UI.
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) => NotificationDialog(
-            tripDetailsInfo: tripDetailsInfo,
-            mobilityAidDataList: mobilityAidDataList,
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error retrieving trip request info: $e');
-    }
+      showDialog(
+        context: context,
+        builder: (BuildContext context) => NotificationDialog(
+          tripDetailsInfo: tripDetailsInfo,
+          mobilityAidDataList: mobilityAidDataList,
+        ),
+      );
+    });
   }
 
   Future<List<Map<dynamic, dynamic>>> fetchMobilityAidData() async {
@@ -155,6 +145,7 @@ class PushNotificationSystem {
     return mobilityAidDataList;
   }
 }
+
 
 // Future<List<Map<dynamic, dynamic>>> fetchMobilityAidData() async {
 //   List<Map<dynamic, dynamic>> mobilityAidDataList = [];
