@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:cccd/global/global_var.dart';
 import 'package:cccd/methods/map_theme_methods.dart';
-import 'package:cccd/pages/profile_page.dart';
 import 'package:cccd/provider/driver_status_provider.dart';
 import 'package:cccd/push_notification/push_notification_system.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -33,16 +32,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    print("entered into InitState of Homepage");
+    // print("before  getCurrentLiveLocationOfDriver called in initstate ");
+    // getCurrentLiveLocationOfDriver();
+    // print("after getCurrentLiveLocationOfDriver called in initstate ");
+    // print("before retrieveCurrentDriverInfo called in initstate ");
+    // print(FirebaseAuth.instance.currentUser!.uid);
+    // retrieveCurrentDriverInfo();
+    // print("after retrieveCurrentDriverInfo called in initstate ");
+    print("before initializeStatus called in initstate ");
     initializeStatus();
-    retrieveCurrentDriverInfo();
-    getCurrentLiveLocationOfDriver();
-    // if (kIsWeb) {
-    //   print("checkWebPermissionsAndAMap");
-    //   checkWebPermissionsAndLoadMap();
-    // } else {
-    //   print("getCurrentLiveLocationOfDriver");
-    //   getCurrentLiveLocationOfDriver();
-    // }
+    print("after  initializeStatus called in initstate ");
   }
 
   @override
@@ -53,69 +53,78 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   // @override
   // void didChangeAppLifecycleState(AppLifecycleState state) {
+  //   print("entered into didChangeAppLifecycleState");
   //   super.didChangeAppLifecycleState(state);
   //   if (state == AppLifecycleState.paused) {
+  //     print("state of AppLifecycleState paused");
   //     // App is in background, do nothing to keep the status the same
   //   } else if (mounted) {
   //     if (state == AppLifecycleState.detached ||
   //         state == AppLifecycleState.inactive) {
+  //       print(" state of AppLifecycleState detached or inactive");
   //       // App is being closed or terminated, set status to offline
-  //       if (Provider.of<DriverStatusProvider>(context, listen: false)
-  //           .isOnline) {
-  //         // goOfflineNow();
-  //       }
+  //       // if (Provider.of<DriverStatusProvider>(context, listen: false)
+  //       //     .isOnline) {
+  //       //   // goOfflineNow();
+  //       // }
   //     }
   //   }
   // }
 
-  Future<void> checkWebPermissionsAndLoadMap() async {
-    await requestLocationPermissionWeb();
-    if (currentPositionOfDriver != null && controllerGoogleMap != null) {
-      setState(() {
-        LatLng positionOfUserInLatLng = LatLng(
-          currentPositionOfDriver!.latitude,
-          currentPositionOfDriver!.longitude,
-        );
+  // Future<void> checkWebPermissionsAndLoadMap() async {
+  //   print("entered into checkWebPermissionsAndLoadMap");
+  //   await requestLocationPermissionWeb();
+  //   if (currentPositionOfDriver != null && controllerGoogleMap != null) {
+  //     setState(() {
+  //       print("setState in checkWebPermissionsAndLoadMap called");
+  //       LatLng positionOfUserInLatLng = LatLng(
+  //         currentPositionOfDriver!.latitude,
+  //         currentPositionOfDriver!.longitude,
+  //       );
 
-        CameraPosition cameraPosition = CameraPosition(
-          target: positionOfUserInLatLng,
-          zoom: 15,
-        );
+  //       CameraPosition cameraPosition = CameraPosition(
+  //         target: positionOfUserInLatLng,
+  //         zoom: 15,
+  //       );
 
-        controllerGoogleMap!.animateCamera(
-          CameraUpdate.newCameraPosition(cameraPosition),
-        );
-      });
-    }
-  }
+  //       controllerGoogleMap!.animateCamera(
+  //         CameraUpdate.newCameraPosition(cameraPosition),
+  //       );
+  //     });
+  //   }
+  // }
 
-  Future<void> requestLocationPermissionWeb() async {
-    LocationPermission permission = await Geolocator.checkPermission();
+  // Future<void> requestLocationPermissionWeb() async {
+  //   print("entered into requestLocationPermissionWeb");
+  //   LocationPermission permission = await Geolocator.checkPermission();
 
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        print('Location permission denied');
-        return;
-      }
-    }
+  //   if (permission == LocationPermission.denied) {
+  //     permission = await Geolocator.requestPermission();
+  //     if (permission == LocationPermission.denied) {
+  //       print('Location permission denied');
+  //       return;
+  //     }
+  //   }
 
-    if (permission == LocationPermission.deniedForever) {
-      print('Location permissions are permanently denied');
-      return;
-    }
+  //   if (permission == LocationPermission.deniedForever) {
+  //     print('Location permissions are permanently denied');
+  //     return;
+  //   }
 
-    if (permission == LocationPermission.whileInUse ||
-        permission == LocationPermission.always) {
-      Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-      setState(() {
-        currentPositionOfDriver = position;
-      });
-    }
-  }
+  //   if (permission == LocationPermission.whileInUse ||
+  //       permission == LocationPermission.always) {
+  //     print("entered into third locationPermission");
+  //     Position position = await Geolocator.getCurrentPosition(
+  //         desiredAccuracy: LocationAccuracy.high);
+  //     setState(() {
+  //       print("setState in third locationPermission");
+  //       currentPositionOfDriver = position;
+  //     });
+  //   }
+  // }
 
   Future<void> getCurrentLiveLocationOfDriver() async {
+    print("entered into getCurrentLiveLocationOfDriver");
     try {
       Position positionOfUser = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
@@ -138,7 +147,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
-  void goOnlineNow() {
+  Future<void> goOnlineNow() async {
+    print("entered into goOnlineNow");
     if (currentPositionOfDriver == null) {
       print('Cannot go online without a valid location');
       return;
@@ -146,57 +156,48 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     // HomePage.dart - goOnlineNow
     if (kIsWeb) {
-      DatabaseReference driversRef = FirebaseDatabase.instance
-          .ref()
-          .child('onlineDrivers')
-          .child(FirebaseAuth.instance.currentUser!.uid);
+      if (currentPositionOfDriver != null) {
+        DatabaseReference driversRef = FirebaseDatabase.instance
+            .ref()
+            .child('onlineDrivers')
+            .child(FirebaseAuth.instance.currentUser!.uid);
 
-      driversRef.update({
-        'latitude': currentPositionOfDriver!.latitude,
-        'longitude': currentPositionOfDriver!.longitude,
-      }).then((_) {
+        // Update the driver's current location in the database
+        driversRef.update({
+          'latitude': currentPositionOfDriver!.latitude,
+          'longitude': currentPositionOfDriver!.longitude,
+        });
+        //.then((_) async {
+        // Reference to newTripStatus for the current driver
         DatabaseReference newTripRequestReference = FirebaseDatabase.instance
             .ref()
             .child("drivers")
             .child(FirebaseAuth.instance.currentUser!.uid)
             .child("newTripStatus");
 
-        newTripRequestReference.set("waiting").then((_) {
-          // Ensure listener is only set after the update is complete
-          newTripRequestReference.onValue.listen((event) {
-            if (event.snapshot.exists) {
-              print("newTripStatus1 is still present: ${event.snapshot.value}");
-            } else {
-              print("newTripStatus has been removed!");
-            }
-          });
+        // Set the newTripStatus to "waiting"
+        await newTripRequestReference.set("waiting");
+        // Listener to monitor changes in newTripStatus
+        newTripRequestReference.onValue.listen((event) {
+          print("newTripRequestReference started listening");
+          if (event.snapshot.exists) {
+            print("newTripStatus is still present: ${event.snapshot.value}");
+          } else {
+            print("newTripStatus has been removed!");
+          }
         });
-      });
-
-      // Web implementation without GeoFire
-      // final DatabaseReference ref = FirebaseDatabase.instance
-      //     .ref()
-      //     .child('onlineDrivers')
-      //     .child(uid);
-
-      // ref.update({
-      //   'latitude': currentPositionOfDriver!.latitude,
-      //   'longitude': currentPositionOfDriver!.longitude,
-      // });
-
-      // DatabaseReference newTripRequestReference = FirebaseDatabase.instance
-      //     .ref()
-      //     .child("drivers")
-      //     .child(uid)
-      //     .child("newTripStatus");
-
-      // newTripRequestReference.child('newTripStatus').onValue.listen((event) {
-      //   // Handle changes in newTripStatus
-      //   String? newStatus = event.snapshot.value as String?;
-      //   if (newStatus != null) {
-      //     // Handle the status change accordingly
-      //   }
-      // });
+        // }).catchError((error) {
+        //   // Error handling if setting newTripStatus fails
+        //   print("Failed to set newTripStatus: $error");
+        // });
+        // }).catchError((error) {
+        //   // Error handling if updating location fails
+        //   print("Failed to update location: $error");
+        // });
+      } else {
+        // Log when the driver's current position is not available
+        print("Driver's current position is not available.");
+      }
     } else {
       // Mobile implementation using GeoFire
       Geofire.initialize("onlineDrivers");
@@ -212,27 +213,28 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           .child("newTripStatus");
 
       newTripRequestReference.set("waiting");
-      newTripRequestReference.onValue.listen((event) {
-        // Handle changes in newTripStatus
-      });
+      // newTripRequestReference.onValue.listen((event) {
+      //   // Handle changes in newTripStatus
+      // });
     }
   }
 
   void setAndGetLocationUpdates() {
-    print("setAndGetLocationsUpdates");
+    print("entered into setAndGetLocationsUpdates");
     bool isUpdatingLocation = false;
     positionStreamHomePage =
-        Geolocator.getPositionStream().listen((Position position) {
+        Geolocator.getPositionStream().listen((Position position) async {
       if (!mounted || isUpdatingLocation) return;
 
       setState(() {
+        print("setState in newTripRequestReference called ");
         currentPositionOfDriver = position;
       });
 
       if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
         isUpdatingLocation = true;
         if (kIsWeb) {
-          final DatabaseReference ref = FirebaseDatabase.instance
+          final DatabaseReference ref = await FirebaseDatabase.instance
               .ref()
               .child('onlineDrivers')
               .child(FirebaseAuth.instance.currentUser!.uid);
@@ -305,6 +307,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           .child(FirebaseAuth.instance.currentUser!.uid);
 
       // Remove the driver's newTripStatus and location data
+      onlineDriversRef.onDisconnect();
       onlineDriversRef.remove().then((_) {
         final DatabaseReference ref = FirebaseDatabase.instance
             .ref()
@@ -345,43 +348,106 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Future<void> initializePushNotificationSystem() async {
-    if (mounted) {
-      PushNotificationSystem notificationSystem = PushNotificationSystem();
-      print("before generate device registation token");
-      await notificationSystem.generateDeviceRegistrationToken();
-      print("after generate device registation token");
-      print("before startListeningForNewNotifications");
-      notificationSystem.startListeningForNewNotifications(context);
-      print("after startListeningForNewNotifications");
-    }
+    print("entered into initializePushNotificationSystem");
+    PushNotificationSystem notificationSystem = PushNotificationSystem();
+    print("before generate device registation token");
+    notificationSystem.generateDeviceRegistrationToken();
+    print("after generate device registation token");
+    print("before startListeningForNewNotifications");
+    notificationSystem.startListeningForNewNotifications(context);
+    print("after startListeningForNewNotifications");
   }
 
+//   Future<void> retrieveCurrentDriverInfo() async {
+//   print("Entered into retrieveCurrentDriverInfo");
+//   final user = FirebaseAuth.instance.currentUser;
+//   if (user == null) {
+//     print('No user logged in');
+//     return;
+//   }
+//   print("Fetching data for UID: ${user.uid}");
+
+//   DatabaseReference ref = FirebaseDatabase.instance
+//       .ref()
+//       .child("drivers")
+//       .child(user.uid);
+
+//   print(ref);
+
+//   try {
+//     DatabaseEvent event = await ref.once();
+
+//     if (event.snapshot.exists && event.snapshot.value != null) {
+//       final Map<String, dynamic> driverData = Map<String, dynamic>.from(event.snapshot.value as Map);
+//        driverName = driverData["name"] ?? 'Unknown';
+//        driverPhone = driverData["phone"] ?? 'Unknown';
+//        driverPhoto = driverData["photo"] ?? 'Unknown';
+//       Map<String, dynamic> carDetails = Map<String, dynamic>.from(driverData["car details"] as Map);
+//        carColor = carDetails["car-color"] ?? 'Unknown';
+//        carModel = carDetails["car-model"] ?? 'Unknown';
+//        carNumber = carDetails["car-number"] ?? 'Unknown';
+
+//       print("Driver Info: Name: $driverName, Phone: $driverPhone, Photo: $driverPhoto");
+//       print("Car Info: Color: $carColor, Model: $carModel, Number: $carNumber");
+//     } else {
+//       print("No data found for the driver with UID: ${user.uid}");
+//     }
+//   } catch (e) {
+//     print('Error fetching driver info: ${e.toString()}');
+//     if (e is FirebaseException) {
+//       print('Firebase Exception: ${e.code}');
+//     }
+//   }
+// }
+
   void retrieveCurrentDriverInfo() async {
+    print("entered into retrieveCurrentDriverInfo");
     try {
-      DatabaseEvent event = await FirebaseDatabase.instance
+      print("entered into try");
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('No user logged in');
+        return;
+      }
+      print("userid = ${user.uid}");
+      DatabaseReference ref = FirebaseDatabase.instance
           .ref()
           .child("drivers")
-          .child(FirebaseAuth.instance.currentUser!.uid)
-          .once();
+          .child(FirebaseAuth.instance.currentUser!.uid);
+
+      DatabaseEvent event = await ref.once();
+
+      print("DatabaseEvent event = $event");
 
       DataSnapshot snap = event.snapshot;
+      print("DataSnapshot snap = $snap");
       if (snap.value != null) {
+        print("into snap");
         // Correctly casting the LinkedMap<Object?, Object?> to Map<String, dynamic>
         final Map<String, dynamic>? driverData =
             Map<String, dynamic>.from(snap.value as Map);
 
         if (driverData != null) {
           driverName = driverData["name"] ?? 'Unknown';
+          print(driverName);
           driverPhone = driverData["phone"] ?? 'Unknown';
+          print(driverPhone);
           driverPhoto = driverData["photo"] ?? 'Unknown';
+          print(driverPhoto);
           carColor = driverData["car details"]?["car-color"] ?? 'Unknown';
+          print(carColor);
           carModel = driverData["car details"]?["car-model"] ?? 'Unknown';
+          print(carModel);
           carNumber = driverData["car details"]?["car-number"] ?? 'Unknown';
+          print(carNumber);
         }
-      }
 
-      await initializePushNotificationSystem();
-      print("initializePushNotificationSystem ended");
+        print("before initializePushNotificationSystem called");
+        initializePushNotificationSystem();
+        print("initializePushNotificationSystem ended");
+      } else {
+        print("No data found for the driver.");
+      }
     } catch (e) {
       print('Error in retrieveCurrentDriverInfo: $e');
     }
@@ -508,7 +574,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               onMapCreated: (GoogleMapController mapController) {
                 controllerGoogleMap = mapController;
                 googleMapCompleterController.complete(controllerGoogleMap);
-                checkWebPermissionsAndLoadMap();
+                // print("before checkWebPermissionsAndLoadMap");
+                // checkWebPermissionsAndLoadMap();
+                // print("after checkWebPermissionsAndLoadMap");
+                print("before retrieveCurrentDriverInfo called in initstate ");
+                retrieveCurrentDriverInfo();
+                print("after retrieveCurrentDriverInfo called in initstate ");
+                print(
+                    "before  getCurrentLiveLocationOfDriver called in initstate ");
+                getCurrentLiveLocationOfDriver();
+                print(
+                    "after getCurrentLiveLocationOfDriver called in initstate ");
               },
             ),
             Container(
@@ -596,12 +672,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           onPressed: () {
                                             if (!driverStatusProvider
                                                 .isOnline) {
+                                              print("goOnlineNow pressed");
                                               goOnlineNow();
                                               setAndGetLocationUpdates();
                                               Navigator.pop(context);
                                               driverStatusProvider
                                                   .toggleOnlineStatus();
                                             } else {
+                                              print("goOfflineNow pressed");
                                               goOfflineNow();
                                               Navigator.pop(context);
                                               driverStatusProvider
@@ -745,12 +823,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           onPressed: () {
                                             if (!driverStatusProvider
                                                 .isOnline) {
+                                              print("goOnlineNow pressed");
                                               goOnlineNow();
                                               setAndGetLocationUpdates();
                                               Navigator.pop(context);
                                               driverStatusProvider
                                                   .toggleOnlineStatus();
                                             } else {
+                                              print("goOfflineNow pressed");
                                               goOfflineNow();
                                               Navigator.pop(context);
                                               driverStatusProvider

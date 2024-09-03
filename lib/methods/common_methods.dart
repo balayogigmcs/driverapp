@@ -28,8 +28,13 @@ class CommonMethods {
   }
 
   void turnOffLocationUpdatesForHomepage() {
+    print("entered into turnOffLocationUpdatesForHomepage");
     if (positionStreamHomePage != null) {
+      print("positionStreamHomePage paused");
       positionStreamHomePage!.pause();
+    }
+    else{
+      print('positionStreamHomePage is null');
     }
 
     if (FirebaseAuth.instance.currentUser != null) {
@@ -42,6 +47,8 @@ class CommonMethods {
 
         // Remove the driver's location data
         onlineDriversRef.remove();
+        print("onlineDriversRef removed");
+        
       } else {
         // Mobile implementation using GeoFire
         Geofire.removeLocation(uid);
@@ -52,6 +59,7 @@ class CommonMethods {
   void turnOnLocationUpdatesForHomepage() {
     if (positionStreamHomePage != null && driverCurrentPosition != null) {
       positionStreamHomePage!.resume();
+      print("positionStreamHomePage resumed");
       final String uid = FirebaseAuth.instance.currentUser!.uid;
 
       if (kIsWeb) {

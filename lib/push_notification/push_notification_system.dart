@@ -1,22 +1,47 @@
-import 'package:assets_audio_player/assets_audio_player.dart';
-import 'package:cccd/global/global_var.dart';
+
+// import 'package:assets_audio_player/assets_audio_player.dart';
+// import 'package:cccd/global/global_var.dart';
 import 'package:cccd/models/trip_details.dart';
 import 'package:cccd/widgets/loading_dialog.dart';
 import 'package:cccd/widgets/notification_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class PushNotificationSystem {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final User? user = FirebaseAuth.instance.currentUser;
-  bool isProcessingTripRequest = false;
 
   Future<void> generateDeviceRegistrationToken() async {
     try {
-      String? deviceToken = await _firebaseMessaging.getToken();
+      String? deviceToken;
+
+      if (kIsWeb) {
+        print("Kis web");
+        // Web-specific token generation
+        deviceToken = await _firebaseMessaging.getToken();
+
+        // Register the service worker for FCM on the web
+        // try {
+        //   await html.window.navigator.serviceWorker
+        //       ?.register('/firebase-messaging-sw.js');
+        //   print('Service worker registered successfully.');
+        // } catch (e) {
+        //   print('Error registering service worker: $e');
+        // }
+      } else {
+        // For Android & iOS
+        deviceToken = await _firebaseMessaging.getToken();
+
+        // Mobile platform: Subscribe to topics
+        await _firebaseMessaging.subscribeToTopic("drivers");
+        await _firebaseMessaging.subscribeToTopic("users");
+      }
+
       if (deviceToken != null) {
         DatabaseReference referenceOnlineDriver = FirebaseDatabase.instance
             .ref()
@@ -24,10 +49,9 @@ class PushNotificationSystem {
             .child(FirebaseAuth.instance.currentUser!.uid)
             .child("deviceToken");
 
-        await referenceOnlineDriver.set(deviceToken);
+        print(deviceToken);
 
-        _firebaseMessaging.subscribeToTopic("drivers");
-        _firebaseMessaging.subscribeToTopic("users");
+        await referenceOnlineDriver.set(deviceToken);
       } else {
         print("Failed to get device token.");
       }
@@ -40,52 +64,41 @@ class PushNotificationSystem {
     FirebaseMessaging.instance
         .getInitialMessage()
         .then((RemoteMessage? messageRemote) {
-      if (messageRemote != null && !isProcessingTripRequest) {
-        isProcessingTripRequest = true;
+      if (messageRemote != null) {
         String tripID = messageRemote.data["tripID"];
-        retrieveTripRequestInfo(tripID, context).whenComplete(() {
-          isProcessingTripRequest = false;
-        });
+        retrieveTripRequestInfo(tripID, context);
       }
     });
 
     FirebaseMessaging.onMessage.listen((RemoteMessage? messageRemote) {
-      if (messageRemote != null && !isProcessingTripRequest) {
-        isProcessingTripRequest = true;
+      if (messageRemote != null) {
         String tripID = messageRemote.data["tripID"];
-        retrieveTripRequestInfo(tripID, context).whenComplete(() {
-          isProcessingTripRequest = false;
-        });
+        retrieveTripRequestInfo(tripID, context);
       }
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage? messageRemote) {
-      if (messageRemote != null && !isProcessingTripRequest) {
-        isProcessingTripRequest = true;
+      if (messageRemote != null) {
         String tripID = messageRemote.data["tripID"];
-        retrieveTripRequestInfo(tripID, context).whenComplete(() {
-          isProcessingTripRequest = false;
-        });
+        retrieveTripRequestInfo(tripID, context);
       }
     });
   }
 
-  Future<void> retrieveTripRequestInfo(
-      String tripID, BuildContext context) async {
+  Future<void> retrieveTripRequestInfo(String tripID, BuildContext context) async {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) =>
-          LoadingDialog(messageText: "Getting details..."),
+      builder: (BuildContext context) => LoadingDialog(messageText: "Getting details..."),
     );
 
     DatabaseReference tripRequestRef =
         FirebaseDatabase.instance.ref().child("tripRequests").child(tripID);
 
-    await tripRequestRef.once().then((dataSnapshot) async {
+    await tripRequestRef.once().then((dataSnapshot)  {
       Navigator.pop(context);
 
-      audioPlayer.open(Audio("assets/audio/alert_sound.mp3"));
+      // audioPlayer.open(Audio("assets/audio/alert_sound.mp3"));
 
       TripDetails tripDetailsInfo = TripDetails();
 
@@ -105,46 +118,73 @@ class PushNotificationSystem {
       tripDetailsInfo.userPhone = (dataSnapshot.snapshot.value! as Map)["userPhone"];
       tripDetailsInfo.tripID = tripID;
 
-      List<Map<dynamic, dynamic>> mobilityAidDataList = await fetchMobilityAidData();
-
+//       List<Map<dynamic, dynamic>> mobilityAidDataList = await fetchMobilityAidData();
+// print("before NotificationDialog is called");
       showDialog(
         context: context,
         builder: (BuildContext context) => NotificationDialog(
           tripDetailsInfo: tripDetailsInfo,
-          mobilityAidDataList: mobilityAidDataList,
+          // mobilityAidDataList: mobilityAidDataList,
         ),
       );
     });
   }
+  // Future<List<Map<dynamic, dynamic>>> fetchMobilityAidData() async {
+  //   List<Map<dynamic, dynamic>> mobilityAidDataList = [];
+  //   DatabaseReference mobilityAidsRef =
+  //       FirebaseDatabase.instance.ref().child('mobilityAids');
+  //   print("Fetching mobility aid data...");
 
-  Future<List<Map<dynamic, dynamic>>> fetchMobilityAidData() async {
-    List<Map<dynamic, dynamic>> mobilityAidDataList = [];
-    DatabaseReference mobilityAidsRef =
-        FirebaseDatabase.instance.ref().child('mobilityAids');
-    print("Fetching mobility aid data...");
+  //   await mobilityAidsRef
+  //       .orderByChild('isCurrent')
+  //       .equalTo(true)
+  //       .once()
+  //       .then((mobilityAidSnap) async {
+  //     final values = mobilityAidSnap.snapshot.value as Map<dynamic, dynamic>?;
+  //     if (values != null) {
+  //       mobilityAidDataList.clear(); // Clear the list before adding new data
+  //       values.forEach((key, value) async {
+  //         mobilityAidDataList.add(Map<dynamic, dynamic>.from(value));
 
-    await mobilityAidsRef
-        .orderByChild('isCurrent')
-        .equalTo(true)
-        .once()
-        .then((mobilityAidSnap) async {
-      final values = mobilityAidSnap.snapshot.value as Map<dynamic, dynamic>?;
-      if (values != null) {
-        mobilityAidDataList.clear(); // Clear the list before adding new data
-        values.forEach((key, value) async {
-          mobilityAidDataList.add(Map<dynamic, dynamic>.from(value));
-
-          // Update the fetched record to set isCurrent to false
-          await mobilityAidsRef.child(key).update({'isCurrent': false});
-        });
-      }
-      print('Fetched mobility aid data: $mobilityAidDataList'); // Debugging log
-    }).catchError((error) {
-      print('Error fetching mobility aid data: $error'); // Debugging log
-    });
-    return mobilityAidDataList;
-  }
+  //         // Update the fetched record to set isCurrent to false
+  //         await mobilityAidsRef.child(key).update({'isCurrent': false});
+  //       });
+  //     }
+  //     print('Fetched mobility aid data: $mobilityAidDataList'); // Debugging log
+  //   }).catchError((error) {
+  //     print('Error fetching mobility aid data: $error'); // Debugging log
+  //   });
+  //   return mobilityAidDataList;
+  // }
 }
+
+// Future<List<Map<dynamic, dynamic>>> fetchMobilityAidData() async {
+//   List<Map<dynamic, dynamic>> mobilityAidDataList = [];
+//   DatabaseReference mobilityAidsRef =
+//       FirebaseDatabase.instance.ref().child('mobilityAids');
+//   print("Fetching mobility aid data...");
+
+//   await mobilityAidsRef
+//       .orderByChild('isCurrent')
+//       .equalTo(true)
+//       .once()
+//       .then((mobilityAidSnap) async {
+//     final values = mobilityAidSnap.snapshot.value as Map<dynamic, dynamic>?;
+//     if (values != null) {
+//       mobilityAidDataList.clear(); // Clear the list before adding new data
+//       values.forEach((key, value) {
+//         mobilityAidDataList.add(Map<dynamic, dynamic>.from(value));
+
+//         // Update the fetched record to set isCurrent to false
+//         mobilityAidsRef.child(key).update({'isCurrent': false});
+//       });
+//     }
+//     print('Fetched mobility aid data: $mobilityAidDataList'); // Debugging log
+//   }).catchError((error) {
+//     print('Error fetching mobility aid data: $error'); // Debugging log
+//   });
+//   return mobilityAidDataList;
+// }
 
 
 // Future<List<Map<dynamic, dynamic>>> fetchMobilityAidData() async {
@@ -321,3 +361,6 @@ class PushNotificationSystem {
 //     return mobilityAidDataList;
 //   }
 // }
+
+
+

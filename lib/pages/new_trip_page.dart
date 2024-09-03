@@ -42,6 +42,18 @@ class _NewTripPageState extends State<NewTripPage> {
   Color buttonColor = Colors.indigoAccent;
   CommonMethods cmethods = CommonMethods();
 
+  @override
+  void initState() {
+    print("entered into initState of NewTripPage");
+    super.initState();
+    // if (mounted) {
+    print("before saveDriverDataToTripInfo in initState");
+    saveDriverDataToTripInfo();
+     print("after saveDriverDataToTripInfo in initState");
+    // }
+    print("initState exited");
+  }
+
   makeMarker() {
     if (carMarkerIcon == null) {
       ImageConfiguration configuration =
@@ -56,125 +68,128 @@ class _NewTripPageState extends State<NewTripPage> {
     }
   }
 
-  obtainDirectionAndDrawRoute(sourceLocationLatLng, destinationLocationLatLng) async {
+  obtainDirectionAndDrawRoute(
+      sourceLocationLatLng, destinationLocationLatLng) async {
     showDialog(
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) =>
             LoadingDialog(messageText: 'Please wait ....'));
+    print("entered into obtainDirectionAndDrawRoute");
 
     var tripDetailsInfo = await CommonMethods.getDirectionDetailsFromAPI(
         sourceLocationLatLng, destinationLocationLatLng);
 
     Navigator.pop(context);
 
-    if (tripDetailsInfo != null) {
-      List<PointLatLng> latLngPoints =
-          pointsPolyline.decodePolyline(tripDetailsInfo.encodePoints!);
+    List<PointLatLng> latLngPoints =
+        pointsPolyline.decodePolyline(tripDetailsInfo!.encodePoints!);
 
-      coordinatesPolylineLatLngList.clear();
+    coordinatesPolylineLatLngList.clear();
 
-      if (latLngPoints.isNotEmpty) {
-        latLngPoints.forEach((PointLatLng pointLatLng) {
-          coordinatesPolylineLatLngList
-              .add(LatLng(pointLatLng.latitude, pointLatLng.longitude));
-        });
-      }
-
-      polylineSet.clear();
-      setState(() {
-        Polyline polyline = Polyline(
-            polylineId: const PolylineId("polylineID"),
-            color: Colors.pink,
-            points: coordinatesPolylineLatLngList,
-            jointType: JointType.round,
-            width: 4,
-            startCap: Cap.roundCap,
-            endCap: Cap.roundCap,
-            geodesic: true);
-
-        polylineSet.add(polyline);
-      });
-
-      LatLngBounds boundsLatLng;
-
-      double minLat =
-          sourceLocationLatLng.latitude < destinationLocationLatLng.latitude
-              ? sourceLocationLatLng.latitude
-              : destinationLocationLatLng.latitude;
-      double maxLat =
-          sourceLocationLatLng.latitude > destinationLocationLatLng.latitude
-              ? sourceLocationLatLng.latitude
-              : destinationLocationLatLng.latitude;
-
-      double minLng =
-          sourceLocationLatLng.longitude < destinationLocationLatLng.longitude
-              ? sourceLocationLatLng.longitude
-              : destinationLocationLatLng.longitude;
-      double maxLng =
-          sourceLocationLatLng.longitude > destinationLocationLatLng.longitude
-              ? sourceLocationLatLng.longitude
-              : destinationLocationLatLng.longitude;
-
-      boundsLatLng = LatLngBounds(
-        southwest: LatLng(minLat, minLng),
-        northeast: LatLng(maxLat, maxLng),
-      );
-
-      controllerGoogleMap!
-          .animateCamera(CameraUpdate.newLatLngBounds(boundsLatLng, 72));
-
-      Marker sourceMarker = Marker(
-        markerId: const MarkerId("pickUpPointMarkerID"),
-        position: sourceLocationLatLng,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-        infoWindow: InfoWindow(
-          title: "Pickup Location",
-          snippet: widget.newTripDetailInfo!.pickUpAddress.toString(),
-        ),
-      );
-
-      Marker destinationMarker = Marker(
-        markerId: const MarkerId("dropOffDestinationPointMarkerID"),
-        position: destinationLocationLatLng,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-        infoWindow: InfoWindow(
-          title: "Destination Location",
-          snippet: widget.newTripDetailInfo!.dropOffAddress.toString(),
-        ),
-      );
-
-      setState(() {
-        markerSet.add(sourceMarker);
-        markerSet.add(destinationMarker);
-      });
-
-      Circle sourceCircle = Circle(
-          circleId: const CircleId("pickUpPointCircleID"),
-          strokeColor: Colors.orange,
-          strokeWidth: 4,
-          radius: 14,
-          center: sourceLocationLatLng,
-          fillColor: Colors.green);
-
-      Circle destinationCircle = Circle(
-          circleId: const CircleId("dropOffDestinationPointCircleID"),
-          strokeColor: Colors.green,
-          strokeWidth: 4,
-          radius: 14,
-          center: destinationLocationLatLng,
-          fillColor: Colors.orange);
-
-      setState(() {
-        circleSet.add(sourceCircle);
-        circleSet.add(destinationCircle);
+    if (latLngPoints.isNotEmpty) {
+      latLngPoints.forEach((PointLatLng pointLatLng) {
+        coordinatesPolylineLatLngList
+            .add(LatLng(pointLatLng.latitude, pointLatLng.longitude));
       });
     }
-  }
 
-  getLiveLocationUpdatesOfDriver() {
+    polylineSet.clear();
+    setState(() {
+      Polyline polyline = Polyline(
+          polylineId: const PolylineId("polylineID"),
+          color: Colors.pink,
+          points: coordinatesPolylineLatLngList,
+          jointType: JointType.round,
+          width: 4,
+          startCap: Cap.roundCap,
+          endCap: Cap.roundCap,
+          geodesic: true);
+
+      polylineSet.add(polyline);
+    });
+
+    LatLngBounds boundsLatLng;
+
+    double minLat =
+        sourceLocationLatLng.latitude < destinationLocationLatLng.latitude
+            ? sourceLocationLatLng.latitude
+            : destinationLocationLatLng.latitude;
+    double maxLat =
+        sourceLocationLatLng.latitude > destinationLocationLatLng.latitude
+            ? sourceLocationLatLng.latitude
+            : destinationLocationLatLng.latitude;
+
+    double minLng =
+        sourceLocationLatLng.longitude < destinationLocationLatLng.longitude
+            ? sourceLocationLatLng.longitude
+            : destinationLocationLatLng.longitude;
+    double maxLng =
+        sourceLocationLatLng.longitude > destinationLocationLatLng.longitude
+            ? sourceLocationLatLng.longitude
+            : destinationLocationLatLng.longitude;
+
+    boundsLatLng = LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+
+    controllerGoogleMap!
+        .animateCamera(CameraUpdate.newLatLngBounds(boundsLatLng, 72));
+
+    Marker sourceMarker = Marker(
+      markerId: const MarkerId("pickUpPointMarkerID"),
+      position: sourceLocationLatLng,
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+      infoWindow: InfoWindow(
+        title: "Pickup Location",
+        snippet: widget.newTripDetailInfo!.pickUpAddress.toString(),
+      ),
+    );
+
+    Marker destinationMarker = Marker(
+      markerId: const MarkerId("dropOffDestinationPointMarkerID"),
+      position: destinationLocationLatLng,
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+      infoWindow: InfoWindow(
+        title: "Destination Location",
+        snippet: widget.newTripDetailInfo!.dropOffAddress.toString(),
+      ),
+    );
+
+    setState(() {
+      markerSet.add(sourceMarker);
+      markerSet.add(destinationMarker);
+    });
+
+    Circle sourceCircle = Circle(
+        circleId: const CircleId("pickUpPointCircleID"),
+        strokeColor: Colors.orange,
+        strokeWidth: 4,
+        radius: 14,
+        center: sourceLocationLatLng,
+        fillColor: Colors.green);
+
+    Circle destinationCircle = Circle(
+        circleId: const CircleId("dropOffDestinationPointCircleID"),
+        strokeColor: Colors.green,
+        strokeWidth: 4,
+        radius: 14,
+        center: destinationLocationLatLng,
+        fillColor: Colors.orange);
+
+    setState(() {
+      circleSet.add(sourceCircle);
+      circleSet.add(destinationCircle);
+    });
+    print("obtainDirectionAndDrawRoute exited");
+  }
+  
+
+  getLiveLocationUpdatesOfDriver()  {
+    print("entered into getLiveLocationUpdatesOfDriver");
     positionStreamNewTripPage =
-        Geolocator.getPositionStream().listen((Position positionDriver) {
+         Geolocator.getPositionStream().listen((Position positionDriver) async {
       // Update driver's current position
       driverCurrentPosition = positionDriver;
       LatLng driverCurrentPositionLatLng = LatLng(
@@ -189,8 +204,8 @@ class _NewTripPageState extends State<NewTripPage> {
         );
 
         setState(() {
-          markerSet
-              .removeWhere((element) => element.markerId.value == 'carMarkerID');
+          markerSet.removeWhere(
+              (element) => element.markerId.value == 'carMarkerID');
           markerSet.add(carMarker);
 
           CameraPosition cameraPosition =
@@ -199,8 +214,9 @@ class _NewTripPageState extends State<NewTripPage> {
               .animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
         });
       }
-
+      print("before updateTripDetailsInformation is called");
       updateTripDetailsInformation();
+      print("after updateTripDetailsInformation called");
 
       // Update driver's location in Firebase
       Map<String, dynamic> updatedLocationOfDriver = {
@@ -211,7 +227,7 @@ class _NewTripPageState extends State<NewTripPage> {
       print(updatedLocationOfDriver);
       print(updatedLocationOfDriver);
 
-      FirebaseDatabase.instance
+    await   FirebaseDatabase.instance
           .ref()
           .child("tripRequests")
           .child(widget.newTripDetailInfo!.tripID!)
@@ -221,11 +237,11 @@ class _NewTripPageState extends State<NewTripPage> {
   }
 
   updateTripDetailsInformation() async {
+    print("entered into updateTripDetailsInformation ");
     if (!directionRequested) {
       directionRequested = true;
 
       if (driverCurrentPosition == null) {
-        directionRequested = false;
         return;
       }
 
@@ -244,17 +260,18 @@ class _NewTripPageState extends State<NewTripPage> {
       var directionDetailsInfo = await CommonMethods.getDirectionDetailsFromAPI(
           driverLocationLatLng, dropOffDestinationLocationLatLng);
 
-      if (directionDetailsInfo != null && mounted) {
+      if (directionDetailsInfo != null) {
+        directionRequested = false;
         setState(() {
           durationText = directionDetailsInfo.durationTextString!;
           distanceText = directionDetailsInfo.distanceTextString!;
         });
       }
-      directionRequested = false;
     }
   }
 
   endTripNow() async {
+    print("entered into endTripNow");
     showDialog(
         context: context,
         barrierDismissible: false,
@@ -271,9 +288,9 @@ class _NewTripPageState extends State<NewTripPage> {
 
     Navigator.pop(context);
 
-    if (directionDetailsEndTripInfo != null) {
       String fareAmount =
-          (cmethods.calculateFareAmount(directionDetailsEndTripInfo)).toString();
+          (cmethods.calculateFareAmount(directionDetailsEndTripInfo!))
+              .toString();
 
       await FirebaseDatabase.instance
           .ref()
@@ -289,12 +306,12 @@ class _NewTripPageState extends State<NewTripPage> {
           .child("status")
           .set("ended");
 
-      positionStreamNewTripPage?.cancel();
+      positionStreamNewTripPage!.cancel();
 
       displayPaymentDialog(fareAmount);
 
       saveFareAmountToDriverTotalEarnings(fareAmount);
-    }
+    print("endTripNow exited");
   }
 
   displayPaymentDialog(fareAmount) {
@@ -312,7 +329,7 @@ class _NewTripPageState extends State<NewTripPage> {
         .child(FirebaseAuth.instance.currentUser!.uid)
         .child("earnings");
 
-    final snap = await driverEarningsRef.once();
+    await driverEarningsRef.once().then((snap) async {
     if (snap.snapshot.value != null) {
       double previousTotalEarnings =
           double.parse(snap.snapshot.value.toString());
@@ -320,14 +337,17 @@ class _NewTripPageState extends State<NewTripPage> {
 
       double newTotalEarnings = previousTotalEarnings + fareAmountForTrip;
 
-      driverEarningsRef.set(newTotalEarnings);
+       driverEarningsRef.set(newTotalEarnings);
     } else {
-      driverEarningsRef.set(fareAmount);
+       driverEarningsRef.set(fareAmount);
     }
+  });
   }
 
   saveDriverDataToTripInfo() async {
-    if (FirebaseAuth.instance.currentUser != null && widget.newTripDetailInfo != null) {
+    print("entered into saveDriverDataToTripInfo");
+    if (FirebaseAuth.instance.currentUser != null &&
+        widget.newTripDetailInfo != null) {
       Map<String, dynamic> driverDataMap = {
         "status": "accepted",
         "driverID": FirebaseAuth.instance.currentUser!.uid,
@@ -337,10 +357,14 @@ class _NewTripPageState extends State<NewTripPage> {
         "carDetails": carColor + " - " + carModel + " - " + carNumber,
       };
 
+      print(driverDataMap);
+
       Map<String, dynamic> driverCurrentLocation = {
         "latitude": driverCurrentPosition!.latitude.toString(),
         "longitude": driverCurrentPosition!.longitude.toString()
       };
+
+      print(driverCurrentLocation);
 
       await FirebaseDatabase.instance
           .ref()
@@ -357,12 +381,10 @@ class _NewTripPageState extends State<NewTripPage> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    if (mounted) {
-      saveDriverDataToTripInfo();
-    }
+    @override
+  void dispose() {
+    positionStreamNewTripPage?.cancel(); // Cancel the subscription when the widget is disposed
+    super.dispose();
   }
 
   @override
@@ -390,6 +412,9 @@ class _NewTripPageState extends State<NewTripPage> {
                 googleMapPaddingFromBottom = 262;
               });
 
+              print(driverCurrentPosition!.latitude);
+              print(driverCurrentPosition!.longitude);
+
               var driverCurrentLocationLatLng = LatLng(
                   driverCurrentPosition!.latitude,
                   driverCurrentPosition!.longitude);
@@ -397,10 +422,15 @@ class _NewTripPageState extends State<NewTripPage> {
               var userPickUpLocationLatLng =
                   widget.newTripDetailInfo!.pickUpLatLng;
 
+              print(userPickUpLocationLatLng);
+              print("before obtainDirectionAndDrawRoute called in google map");
               await obtainDirectionAndDrawRoute(
                   driverCurrentLocationLatLng, userPickUpLocationLatLng);
+              print("after obtainDirectionAndDrawRoute called google map");
 
-              getLiveLocationUpdatesOfDriver();
+              print("before getLiveLocationUpdatesOfDriver called");
+               getLiveLocationUpdatesOfDriver();
+              print("after getLiveLocationUpdatesOfDriver called");
             },
           ),
 
@@ -427,7 +457,8 @@ class _NewTripPageState extends State<NewTripPage> {
               ),
               height: 256,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -549,11 +580,13 @@ class _NewTripPageState extends State<NewTripPage> {
                                   builder: (BuildContext context) =>
                                       LoadingDialog(
                                           messageText: 'Please wait ....'));
-
+                              print(
+                                  "before obtainDirectionAndDrawRoute called after accepted");
                               await obtainDirectionAndDrawRoute(
                                   widget.newTripDetailInfo!.pickUpLatLng,
                                   widget.newTripDetailInfo!.dropOffLatLng);
-
+                              print(
+                                  "after obtainDirectionAndDrawRoute called after accepted");
                               if (mounted) {
                                 Navigator.pop(context);
                               }
@@ -575,7 +608,9 @@ class _NewTripPageState extends State<NewTripPage> {
                             }
                             // End trip button
                             else if (statusOfTrip == "ontrip") {
+                              print("before endTripNow called after arrived");
                               endTripNow();
+                              print("after endTripNow  called after arrived");
                             }
                           },
                           style: ElevatedButton.styleFrom(
