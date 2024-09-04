@@ -23,6 +23,7 @@ class DriverStatusProvider extends ChangeNotifier {
           .child(user.uid)
           .update({'status': _isOnline ? 'online' : 'offline'});
     }
+    print("updateDriverStatusInFirebase");
   }
 
   Future<void> setInitialStatus() async {

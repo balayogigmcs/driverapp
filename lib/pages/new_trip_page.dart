@@ -49,7 +49,7 @@ class _NewTripPageState extends State<NewTripPage> {
     // if (mounted) {
     print("before saveDriverDataToTripInfo in initState");
     saveDriverDataToTripInfo();
-     print("after saveDriverDataToTripInfo in initState");
+    print("after saveDriverDataToTripInfo in initState");
     // }
     print("initState exited");
   }
@@ -184,12 +184,11 @@ class _NewTripPageState extends State<NewTripPage> {
     });
     print("obtainDirectionAndDrawRoute exited");
   }
-  
 
-  getLiveLocationUpdatesOfDriver()  {
+  getLiveLocationUpdatesOfDriver() {
     print("entered into getLiveLocationUpdatesOfDriver");
     positionStreamNewTripPage =
-         Geolocator.getPositionStream().listen((Position positionDriver) async {
+        Geolocator.getPositionStream().listen((Position positionDriver) async {
       // Update driver's current position
       driverCurrentPosition = positionDriver;
       LatLng driverCurrentPositionLatLng = LatLng(
@@ -227,7 +226,7 @@ class _NewTripPageState extends State<NewTripPage> {
       print(updatedLocationOfDriver);
       print(updatedLocationOfDriver);
 
-    await   FirebaseDatabase.instance
+      await FirebaseDatabase.instance
           .ref()
           .child("tripRequests")
           .child(widget.newTripDetailInfo!.tripID!)
@@ -288,29 +287,28 @@ class _NewTripPageState extends State<NewTripPage> {
 
     Navigator.pop(context);
 
-      String fareAmount =
-          (cmethods.calculateFareAmount(directionDetailsEndTripInfo!))
-              .toString();
+    String fareAmount =
+        (cmethods.calculateFareAmount(directionDetailsEndTripInfo!)).toString();
 
-      await FirebaseDatabase.instance
-          .ref()
-          .child("tripRequests")
-          .child(widget.newTripDetailInfo!.tripID!)
-          .child("fareAmount")
-          .set(fareAmount);
+    await FirebaseDatabase.instance
+        .ref()
+        .child("tripRequests")
+        .child(widget.newTripDetailInfo!.tripID!)
+        .child("fareAmount")
+        .set(fareAmount);
 
-      await FirebaseDatabase.instance
-          .ref()
-          .child("tripRequests")
-          .child(widget.newTripDetailInfo!.tripID!)
-          .child("status")
-          .set("ended");
+    await FirebaseDatabase.instance
+        .ref()
+        .child("tripRequests")
+        .child(widget.newTripDetailInfo!.tripID!)
+        .child("status")
+        .set("ended");
 
-      positionStreamNewTripPage!.cancel();
+    positionStreamNewTripPage!.cancel();
 
-      displayPaymentDialog(fareAmount);
+    displayPaymentDialog(fareAmount);
 
-      saveFareAmountToDriverTotalEarnings(fareAmount);
+    saveFareAmountToDriverTotalEarnings(fareAmount);
     print("endTripNow exited");
   }
 
@@ -329,20 +327,61 @@ class _NewTripPageState extends State<NewTripPage> {
         .child(FirebaseAuth.instance.currentUser!.uid)
         .child("earnings");
 
-    await driverEarningsRef.once().then((snap) async {
-    if (snap.snapshot.value != null) {
-      double previousTotalEarnings =
-          double.parse(snap.snapshot.value.toString());
-      double fareAmountForTrip = double.parse(fareAmount);
+    try {
+      driverEarningsRef.runTransaction((mutableData) {
+        double currentEarnings = 0.0;
+        if (mutableData != null) {
+          try {
+            currentEarnings = double.parse(mutableData.toString());
+          } catch (e) {
+            print("Error parsing current earnings: $e");
+          }
+        }
 
-      double newTotalEarnings = previousTotalEarnings + fareAmountForTrip;
+        double fareAmountForTrip = 0.0;
+        try {
+          fareAmountForTrip = double.parse(fareAmount);
+        } catch (e) {
+          print("Error parsing fare amount: $e");
+        }
 
-       driverEarningsRef.set(newTotalEarnings);
-    } else {
-       driverEarningsRef.set(fareAmount);
+        mutableData = (currentEarnings + fareAmountForTrip).toString();
+        return Transaction.success(mutableData);
+      }).then((transactionResult) {
+        if (transactionResult.committed) {
+          print("Earnings updated successfully");
+        } else {
+          print("Failed to update earnings");
+        }
+      }).catchError((error) {
+        print("Error updating earnings: $error");
+      });
+    } catch (e) {
+      print("An error occurred during the transaction: $e");
     }
-  });
   }
+
+  // saveFareAmountToDriverTotalEarnings(String fareAmount) async {
+  //   DatabaseReference driverEarningsRef = FirebaseDatabase.instance
+  //       .ref()
+  //       .child("drivers")
+  //       .child(FirebaseAuth.instance.currentUser!.uid)
+  //       .child("earnings");
+
+  //   await driverEarningsRef.once().then((snap)  {
+  //   if (snap.snapshot.value != null) {
+  //     double previousTotalEarnings =
+  //         double.parse(snap.snapshot.value.toString());
+  //     double fareAmountForTrip = double.parse(fareAmount);
+
+  //     double newTotalEarnings = previousTotalEarnings + fareAmountForTrip;
+
+  //      driverEarningsRef.set(newTotalEarnings);
+  //   } else {
+  //      driverEarningsRef.set(fareAmount);
+  //   }
+  // });
+  // }
 
   saveDriverDataToTripInfo() async {
     print("entered into saveDriverDataToTripInfo");
@@ -381,9 +420,10 @@ class _NewTripPageState extends State<NewTripPage> {
     }
   }
 
-    @override
+  @override
   void dispose() {
-    positionStreamNewTripPage?.cancel(); // Cancel the subscription when the widget is disposed
+    positionStreamNewTripPage
+        ?.cancel(); // Cancel the subscription when the widget is disposed
     super.dispose();
   }
 
@@ -429,7 +469,7 @@ class _NewTripPageState extends State<NewTripPage> {
               print("after obtainDirectionAndDrawRoute called google map");
 
               print("before getLiveLocationUpdatesOfDriver called");
-               getLiveLocationUpdatesOfDriver();
+              getLiveLocationUpdatesOfDriver();
               print("after getLiveLocationUpdatesOfDriver called");
             },
           ),

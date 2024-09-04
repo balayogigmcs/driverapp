@@ -7,6 +7,7 @@ import 'package:cccd/methods/common_methods.dart';
 import 'package:cccd/models/trip_details.dart';
 import 'package:cccd/pages/new_trip_page.dart';
 import 'package:cccd/widgets/loading_dialog.dart';
+// import 'package:synchronized/synchronized.dart';
 
 class NotificationDialog extends StatefulWidget {
   final TripDetails? tripDetailsInfo;
@@ -20,6 +21,7 @@ class NotificationDialog extends StatefulWidget {
 class _NotificationDialogState extends State<NotificationDialog> {
   String tripRequestStatus = "";
   CommonMethods cMethods = CommonMethods();
+  // final Lock _firebaseLock = Lock();
 
   @override
   void initState() {
@@ -52,73 +54,142 @@ class _NotificationDialogState extends State<NotificationDialog> {
   }
 
   checkAvailablityOfTripRequest(BuildContext context) async {
-    print("entered into checkAvailablityOfTripRequest");
+  print("entered into checkAvailablityOfTripRequest");
 
-    print("before showDialog");
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) =>
-            LoadingDialog(messageText: 'Please wait...'));
+  print("before showDialog");
+  showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) =>
+          LoadingDialog(messageText: 'Please wait...'));
 
-    print("after showDialog");
+  print("after showDialog");
 
-    DatabaseReference driverTripStatusRef = FirebaseDatabase.instance
-        .ref()
-        .child("drivers")
-        .child(FirebaseAuth.instance.currentUser!.uid)
-        .child("newTripStatus");
 
-    print("after creating driverTripStatusRef");
-
-    try {
-      DatabaseEvent event = await driverTripStatusRef.once();
+  DatabaseReference driverTripStatusRef = FirebaseDatabase.instance
+      .ref()
+      .child("drivers")
+      .child(FirebaseAuth.instance.currentUser!.uid)
+      .child("newTripStatus");
 
       Navigator.pop(context);
-      Navigator.pop(context); // Close the loading dialog
-      print("after popping context");
 
-      DataSnapshot snap = event.snapshot;
-      String newTripStatusValue = "";
-      if (snap.value != null) {
-        newTripStatusValue = snap.value.toString();
-        print(newTripStatusValue);
-        print(widget.tripDetailsInfo!.tripID);
-      } else {
-        cMethods.displaySnackbar("Trip Request Not found", context);
-      }
+  print("after creating driverTripStatusRef");
 
-      if (newTripStatusValue == widget.tripDetailsInfo!.tripID) {
-        print("before set to accepted inside function");
-        // await Future.delayed(Duration(seconds: 2));
-        await driverTripStatusRef
-            .set("accepted")
-            .onError((error, stackTrace) => print(stackTrace));
-        print("Trip status set to accepted.");
-        print("before turnOffLocationUpdatesForHomepage");
-        cMethods.turnOffLocationUpdatesForHomepage();
-        print("after turnOffLocationUpdatesForHomepage");
-
-        print("entered into NewTripPage");
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (BuildContext context) =>
-                    NewTripPage(newTripDetailInfo: widget.tripDetailsInfo)));
-      } else if (newTripStatusValue == "cancelled") {
-        cMethods.displaySnackbar(
-            "Trip request has been Cancelled by User", context);
-      } else if (newTripStatusValue == "timeout") {
-        cMethods.displaySnackbar("Trip request Timeout", context);
-      } else {
-        cMethods.displaySnackbar("Trip request removed, Not Found", context);
-      }
-    } catch (e, stackTrace) {
-      print("Error is : $e");
-      print("StackTrace ; $stackTrace");
-      cMethods.displaySnackbar("An error occurred", context);
+  // Using a transaction to safely check and update the trip status
+  driverTripStatusRef.runTransaction((mutableData) {
+    if (mutableData == widget.tripDetailsInfo!.tripID) {
+      mutableData = "accepted";
+      return Transaction.success(mutableData);
+    } else {
+      // Abort the transaction
+      return Transaction.abort();
     }
-  }
+  }).then((transactionResult) {
+    if (transactionResult.committed) {
+      print("Trip status set to accepted.");
+      cMethods.turnOffLocationUpdatesForHomepage();
+      Navigator.of(context).pop(); // Close the loading dialog
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (BuildContext context) =>
+                  NewTripPage(newTripDetailInfo: widget.tripDetailsInfo)));
+    } else {
+      print("Transaction not committed. Status might be 'cancelled' or 'timeout'");
+      cMethods.displaySnackbar("Failed to accept trip request", context);
+    }
+  }).catchError((error) {
+    print("Transaction failed: $error");
+    Navigator.of(context).pop(); // Close the loading dialog
+    cMethods.displaySnackbar("An error occurred", context);
+  });
+}
+
+
+  // checkAvailablityOfTripRequest(BuildContext context) async {
+  //   print("entered into checkAvailablityOfTripRequest");
+
+  //   print("before showDialog");
+  //   showDialog(
+  //       context: context,
+  //       barrierDismissible: false,
+  //       builder: (BuildContext context) =>
+  //           LoadingDialog(messageText: 'Please wait...'));
+
+  //   print("after showDialog");
+
+  //   DatabaseReference driverTripStatusRef = FirebaseDatabase.instance
+  //       .ref()
+  //       .child("drivers")
+  //       .child(FirebaseAuth.instance.currentUser!.uid)
+  //       .child("newTripStatus");
+
+  //   print("after creating driverTripStatusRef");
+
+  //   // try {
+  //   driverTripStatusRef.once().then((snap) async {
+  //     Navigator.pop(context);
+  //     Navigator.pop(context);
+  //     String newTripStatusValue = "";
+
+  //     if (snap.snapshot.value != null) {
+  //       newTripStatusValue = snap.snapshot.value.toString();
+  //       print(newTripStatusValue);
+  //       print(widget.tripDetailsInfo!.tripID);
+  //     } else {
+  //       cMethods.displaySnackbar("Trip Request Not found", context);
+  //     }
+
+  //     if (newTripStatusValue == widget.tripDetailsInfo!.tripID) {
+  //       print("before set to accepted inside function");
+  //       // await Future.delayed(Duration(seconds: 2));
+  //       // await _setTripAccepted(driverTripStatusRef);
+  //       await driverTripStatusRef.set("accepted");
+  //       print("Trip status set to accepted.");
+  //       print("before turnOffLocationUpdatesForHomepage");
+  //       cMethods.turnOffLocationUpdatesForHomepage();
+  //       print("after turnOffLocationUpdatesForHomepage");
+
+  //       print("entered into NewTripPage");
+  //       Navigator.push(
+  //           context,
+  //           MaterialPageRoute(
+  //               builder: (BuildContext context) =>
+  //                   NewTripPage(newTripDetailInfo: widget.tripDetailsInfo)));
+  //     } else if (newTripStatusValue == "cancelled") {
+  //       cMethods.displaySnackbar(
+  //           "Trip request has been Cancelled by User", context);
+  //     } else if (newTripStatusValue == "timeout") {
+  //       cMethods.displaySnackbar("Trip request Timeout", context);
+  //     } else {
+  //       cMethods.displaySnackbar("Trip request removed, Not Found", context);
+  //     }
+  //   });
+  //   // } catch (e, stackTrace) {
+  //   //   print("Error is : $e");
+  //   //   print("StackTrace ; $stackTrace");
+  //   //   cMethods.displaySnackbar("An error occurred", context);
+  //   // }
+  // }
+
+  // Future<void> _setTripAccepted(DatabaseReference ref) async {
+  //   await _firebaseLock.synchronized(() async {
+  //     try {
+  //       print("Setting trip status to accepted.");
+  //       await ref.set("accepted");
+  //       print("Trip status set to accepted.");
+  //       if (mounted) {
+  //         Navigator.pop(context);
+  //       } else {
+  //         print("not mounted");
+  //       }
+  //       // Proceed with other operations after setting status
+  //     } catch (e) {
+  //       print('Error setting trip status: $e');
+  //     }
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {
