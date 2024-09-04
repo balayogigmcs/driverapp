@@ -27,132 +27,166 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  @override
   void initState() {
     super.initState();
     setDriverInfo();
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white38,
-        body: Center(
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            //image
-            Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
+      body: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Image
+              Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white,
+                  color: Colors.black,
                   image: DecorationImage(
-                      fit: BoxFit.fitHeight, image: NetworkImage(driverPhoto))),
-            ),
-        
-            const SizedBox(
-              height: 16,
-            ),
-        
-            //driver name
-            Padding(
-              padding: const EdgeInsets.only(left: 18.0, right: 18, top: 8),
-              child: TextField(
-                controller: nameTextEditingController,
-                textAlign: TextAlign.center,
-                enabled: false,
-                style: TextStyle(fontSize: 16, color: Colors.black),
-                decoration: InputDecoration(
+                    fit: BoxFit.fitHeight,
+                    image: driverPhoto.isNotEmpty
+                        ? Image.network(
+                            driverPhoto,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                Icons.error,
+                                color: Colors.green,
+                                size: 100,
+                              );
+                            },
+                          ).image
+                        : AssetImage(
+                            'assets/images/logo.png'), // Fallback image
+                  ),
+                ),
+              ),
+
+
+              const SizedBox(height: 16),
+
+              // Driver name
+              Padding(
+                padding: const EdgeInsets.only(left: 18.0, right: 18, top: 8),
+                child: TextField(
+                  controller: nameTextEditingController,
+                  textAlign: TextAlign.center,
+                  enabled: false,
+                  style: TextStyle(fontSize: 16, color: Colors.black),
+                  decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.black, width: 2)),
+                      borderSide: BorderSide(color: Colors.black, width: 2),
+                    ),
                     prefixIcon: Icon(
                       Icons.person,
                       color: Colors.black,
-                    )),
+                    ),
+                  ),
+                ),
               ),
-            ),
-            //driver phone
-            Padding(
-              padding: const EdgeInsets.only(left: 18.0, right: 18, top: 4),
-              child: TextField(
-                controller: phoneTextEditingController,
-                textAlign: TextAlign.center,
-                enabled: false,
-                style: TextStyle(fontSize: 16, color: Colors.black),
-                decoration: InputDecoration(
+
+              // Driver phone
+              Padding(
+                padding: const EdgeInsets.only(left: 18.0, right: 18, top: 4),
+                child: TextField(
+                  controller: phoneTextEditingController,
+                  textAlign: TextAlign.center,
+                  enabled: false,
+                  style: TextStyle(fontSize: 16, color: Colors.black),
+                  decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.black, width: 2)),
+                      borderSide: BorderSide(color: Colors.black, width: 2),
+                    ),
                     prefixIcon: Icon(
                       Icons.phone,
                       color: Colors.black,
-                    )),
+                    ),
+                  ),
+                ),
               ),
-            ),
-            //driver email
-            Padding(
-              padding: const EdgeInsets.only(left: 18.0, right: 18, top: 4),
-              child: TextField(
-                controller: emailTextEditingController,
-                textAlign: TextAlign.center,
-                enabled: false,
-                style: TextStyle(fontSize: 16, color: Colors.black),
-                decoration: InputDecoration(
+
+              // Driver email
+              Padding(
+                padding: const EdgeInsets.only(left: 18.0, right: 18, top: 4),
+                child: TextField(
+                  controller: emailTextEditingController,
+                  textAlign: TextAlign.center,
+                  enabled: false,
+                  style: TextStyle(fontSize: 16, color: Colors.black),
+                  decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.black, width: 2)),
+                      borderSide: BorderSide(color: Colors.black, width: 2),
+                    ),
                     prefixIcon: Icon(
                       Icons.email,
                       color: Colors.black,
-                    )),
+                    ),
+                  ),
+                ),
               ),
-            ),
-            //driver car
-            Padding(
-              padding: const EdgeInsets.only(left: 18.0, right: 18, top: 4),
-              child: TextField(
-                controller: carTextEditingController,
-                textAlign: TextAlign.center,
-                enabled: false,
-                style: TextStyle(fontSize: 16, color: Colors.black),
-                decoration: InputDecoration(
+
+              // Driver car
+              Padding(
+                padding: const EdgeInsets.only(left: 18.0, right: 18, top: 4),
+                child: TextField(
+                  controller: carTextEditingController,
+                  textAlign: TextAlign.center,
+                  enabled: false,
+                  style: TextStyle(fontSize: 16, color: Colors.black),
+                  decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.black, width: 2)),
+                      borderSide: BorderSide(color: Colors.black, width: 2),
+                    ),
                     prefixIcon: Icon(
                       Icons.drive_eta_rounded,
                       color: Colors.black,
-                    )),
+                    ),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(
-              height: 12,
-            ),
-            // log out button
-            ElevatedButton(
-              onPressed: () {
-                FirebaseAuth.instance.signOut();
-                Navigator.push(context, MaterialPageRoute(builder: (BuildContext context) => LoginScreen()));
-              },
-              style: ElevatedButton.styleFrom(
+
+              const SizedBox(height: 12),
+
+              // Log out button
+              ElevatedButton(
+                onPressed: () {
+                  FirebaseAuth.instance.signOut();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (BuildContext context) => LoginScreen()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.pink,
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 80, vertical: 20)),
-              child: const Text(
-                'LogOut',
-                style: TextStyle(color: Colors.black),
+                      const EdgeInsets.symmetric(horizontal: 80, vertical: 20),
+                ),
+                child: const Text(
+                  'LogOut',
+                  style: TextStyle(color: Colors.black),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ));
+    );
   }
 }

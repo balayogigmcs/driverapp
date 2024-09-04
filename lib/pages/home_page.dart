@@ -2,17 +2,17 @@ import 'dart:async';
 import 'package:cccd/global/global_var.dart';
 import 'package:cccd/methods/map_theme_methods.dart';
 import 'package:cccd/provider/driver_status_provider.dart';
-import 'package:cccd/push_notification.dart/push_notification_system.dart';
+import 'package:cccd/push_notification/push_notification_system.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'package:flutter_geofire/flutter_geofire.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
-
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -32,9 +32,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    getCurrentLiveLocationOfDriver();
-    retrieveCurrentDriverInfo();
+    print("entered into InitState of Homepage");
+    // print("before  getCurrentLiveLocationOfDriver called in initstate ");
+    // getCurrentLiveLocationOfDriver();
+    // print("after getCurrentLiveLocationOfDriver called in initstate ");
+    // print("before retrieveCurrentDriverInfo called in initstate ");
+    // print(FirebaseAuth.instance.currentUser!.uid);
+    // retrieveCurrentDriverInfo();
+    // print("after retrieveCurrentDriverInfo called in initstate ");
+    print("before initializeStatus called in initstate ");
     initializeStatus();
+    print("after  initializeStatus called in initstate ");
   }
 
   @override
@@ -43,33 +51,94 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.paused) {
-      // App is in background, do nothing to keep the status the same
-    } else if (state == AppLifecycleState.detached || state == AppLifecycleState.inactive) {
-      // App is being closed or terminated, set status to offline
-      if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
-        goOfflineNow();
-      }
-    }
-  }
+  // @override
+  // void didChangeAppLifecycleState(AppLifecycleState state) {
+  //   print("entered into didChangeAppLifecycleState");
+  //   super.didChangeAppLifecycleState(state);
+  //   if (state == AppLifecycleState.paused) {
+  //     print("state of AppLifecycleState paused");
+  //     // App is in background, do nothing to keep the status the same
+  //   } else if (mounted) {
+  //     if (state == AppLifecycleState.detached ||
+  //         state == AppLifecycleState.inactive) {
+  //       print(" state of AppLifecycleState detached or inactive");
+  //       // App is being closed or terminated, set status to offline
+  //       // if (Provider.of<DriverStatusProvider>(context, listen: false)
+  //       //     .isOnline) {
+  //       //   // goOfflineNow();
+  //       // }
+  //     }
+  //   }
+  // }
+
+  // Future<void> checkWebPermissionsAndLoadMap() async {
+  //   print("entered into checkWebPermissionsAndLoadMap");
+  //   await requestLocationPermissionWeb();
+  //   if (currentPositionOfDriver != null && controllerGoogleMap != null) {
+  //     setState(() {
+  //       print("setState in checkWebPermissionsAndLoadMap called");
+  //       LatLng positionOfUserInLatLng = LatLng(
+  //         currentPositionOfDriver!.latitude,
+  //         currentPositionOfDriver!.longitude,
+  //       );
+
+  //       CameraPosition cameraPosition = CameraPosition(
+  //         target: positionOfUserInLatLng,
+  //         zoom: 15,
+  //       );
+
+  //       controllerGoogleMap!.animateCamera(
+  //         CameraUpdate.newCameraPosition(cameraPosition),
+  //       );
+  //     });
+  //   }
+  // }
+
+  // Future<void> requestLocationPermissionWeb() async {
+  //   print("entered into requestLocationPermissionWeb");
+  //   LocationPermission permission = await Geolocator.checkPermission();
+
+  //   if (permission == LocationPermission.denied) {
+  //     permission = await Geolocator.requestPermission();
+  //     if (permission == LocationPermission.denied) {
+  //       print('Location permission denied');
+  //       return;
+  //     }
+  //   }
+
+  //   if (permission == LocationPermission.deniedForever) {
+  //     print('Location permissions are permanently denied');
+  //     return;
+  //   }
+
+  //   if (permission == LocationPermission.whileInUse ||
+  //       permission == LocationPermission.always) {
+  //     print("entered into third locationPermission");
+  //     Position position = await Geolocator.getCurrentPosition(
+  //         desiredAccuracy: LocationAccuracy.high);
+  //     setState(() {
+  //       print("setState in third locationPermission");
+  //       currentPositionOfDriver = position;
+  //     });
+  //   }
+  // }
 
   Future<void> getCurrentLiveLocationOfDriver() async {
+    print("entered into getCurrentLiveLocationOfDriver");
     try {
       Position positionOfUser = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.bestForNavigation);
+          desiredAccuracy: LocationAccuracy.high);
       currentPositionOfDriver = positionOfUser;
       driverCurrentPosition = currentPositionOfDriver;
+      if (currentPositionOfDriver != null && controllerGoogleMap != null) {
+        LatLng positionOfUserInLatLng = LatLng(
+            currentPositionOfDriver!.latitude,
+            currentPositionOfDriver!.longitude);
+        CameraPosition cameraPosition =
+            CameraPosition(target: positionOfUserInLatLng, zoom: 15);
 
-      LatLng positionOfUserInLatLng = LatLng(
-          currentPositionOfDriver!.latitude, currentPositionOfDriver!.longitude);
-      CameraPosition cameraPosition =
-          CameraPosition(target: positionOfUserInLatLng, zoom: 15);
-
-      if (controllerGoogleMap != null) {
-        controllerGoogleMap!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+        controllerGoogleMap!
+            .animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
       } else {
         print('controllerGoogleMap is null');
       }
@@ -78,248 +147,725 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
-  void goOnlineNow() {
-    // all drivers who are available for new trip requests
-    Geofire.initialize("onlineDrivers");
+  Future<void> goOnlineNow() async {
+    print("entered into goOnlineNow");
+    if (currentPositionOfDriver == null) {
+      print('Cannot go online without a valid location');
+      return;
+    }
 
-    Geofire.setLocation(FirebaseAuth.instance.currentUser!.uid,
-        currentPositionOfDriver!.latitude, currentPositionOfDriver!.longitude);
+    // HomePage.dart - goOnlineNow
+    if (kIsWeb) {
+      if (currentPositionOfDriver != null) {
+        DatabaseReference driversRef = FirebaseDatabase.instance
+            .ref()
+            .child('onlineDrivers')
+            .child(FirebaseAuth.instance.currentUser!.uid);
 
-    DatabaseReference newTripRequestReference = FirebaseDatabase.instance
-        .ref()
-        .child("drivers")
-        .child(FirebaseAuth.instance.currentUser!.uid)
-        .child("newTripStatus");
+        // Update the driver's current location in the database
+        driversRef.update({
+          'latitude': currentPositionOfDriver!.latitude,
+          'longitude': currentPositionOfDriver!.longitude,
+        });
+        //.then((_) async {
+        // Reference to newTripStatus for the current driver
+        DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+            .ref()
+            .child("drivers")
+            .child(FirebaseAuth.instance.currentUser!.uid)
+            .child("newTripStatus");
 
-    newTripRequestReference.set("waiting");
-    newTripRequestReference.onValue.listen((event) {});
+        // Set the newTripStatus to "waiting"
+        await newTripRequestReference.set("waiting");
+        // Listener to monitor changes in newTripStatus
+        newTripRequestReference.onValue.listen((event) {
+          print("newTripRequestReference started listening");
+          if (event.snapshot.exists) {
+            print("newTripStatus is still present: ${event.snapshot.value}");
+          } else {
+            print("newTripStatus has been removed!");
+          }
+        });
+        // }).catchError((error) {
+        //   // Error handling if setting newTripStatus fails
+        //   print("Failed to set newTripStatus: $error");
+        // });
+        // }).catchError((error) {
+        //   // Error handling if updating location fails
+        //   print("Failed to update location: $error");
+        // });
+      } else {
+        // Log when the driver's current position is not available
+        print("Driver's current position is not available.");
+      }
+    } else {
+      // Mobile implementation using GeoFire
+      Geofire.initialize("onlineDrivers");
+      Geofire.setLocation(
+          FirebaseAuth.instance.currentUser!.uid,
+          currentPositionOfDriver!.latitude,
+          currentPositionOfDriver!.longitude);
+
+      DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+          .ref()
+          .child("drivers")
+          .child(FirebaseAuth.instance.currentUser!.uid)
+          .child("newTripStatus");
+
+      newTripRequestReference.set("waiting");
+      // newTripRequestReference.onValue.listen((event) {
+      //   // Handle changes in newTripStatus
+      // });
+    }
   }
 
   void setAndGetLocationUpdates() {
+    print("entered into setAndGetLocationsUpdates");
+    bool isUpdatingLocation = false;
     positionStreamHomePage =
-        Geolocator.getPositionStream().listen((Position position) {
-      currentPositionOfDriver = position;
+        Geolocator.getPositionStream().listen((Position position) async {
+      if (!mounted || isUpdatingLocation) return;
+
+      setState(() {
+        print("setState in newTripRequestReference called ");
+        currentPositionOfDriver = position;
+      });
 
       if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
-        Geofire.setLocation(
-            FirebaseAuth.instance.currentUser!.uid,
-            currentPositionOfDriver!.latitude,
-            currentPositionOfDriver!.longitude);
+        isUpdatingLocation = true;
+        if (kIsWeb) {
+          final DatabaseReference ref = await FirebaseDatabase.instance
+              .ref()
+              .child('onlineDrivers')
+              .child(FirebaseAuth.instance.currentUser!.uid);
+          ref.update({
+            'latitude': position.latitude,
+            'longitude': position.longitude,
+          }).then((_) {
+            isUpdatingLocation = false;
+          });
+        } else {
+          Geofire.setLocation(
+                  FirebaseAuth.instance.currentUser!.uid,
+                  currentPositionOfDriver!.latitude,
+                  currentPositionOfDriver!.longitude)
+              .then((_) {
+            isUpdatingLocation = false;
+          });
+        }
       }
 
-      LatLng positionLatLng = LatLng(currentPositionOfDriver!.latitude,
-          currentPositionOfDriver!.longitude);
+      if (controllerGoogleMap != null) {
+        LatLng positionLatLng = LatLng(currentPositionOfDriver!.latitude,
+            currentPositionOfDriver!.longitude);
 
-      controllerGoogleMap!
-          .animateCamera(CameraUpdate.newLatLng(positionLatLng));
+        controllerGoogleMap!
+            .animateCamera(CameraUpdate.newLatLng(positionLatLng));
+      }
     });
   }
+  // // void setAndGetLocationUpdates() {
+  // //   positionStreamHomePage =
+  // //       Geolocator.getPositionStream().listen((Position position) {
+  // //     currentPositionOfDriver = position;
+
+  // //     if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
+  // //       if (kIsWeb) {
+  // //         // Web implementation
+  // //         final DatabaseReference ref = FirebaseDatabase.instance
+  // //             .ref()
+  // //             .child('onlineDrivers')
+  // //             .child(FirebaseAuth.instance.currentUser!.uid);
+
+  // //         ref.update({
+  // //           'latitude': position.latitude,
+  // //           'longitude': position.longitude,
+  // //         });
+  // //       } else {
+  // //         // Mobile implementation using GeoFire
+  // //         Geofire.setLocation(
+  // //             FirebaseAuth.instance.currentUser!.uid,
+  // //             currentPositionOfDriver!.latitude,
+  // //             currentPositionOfDriver!.longitude);
+  // //       }
+  // //     }
+
+  //     LatLng positionLatLng = LatLng(currentPositionOfDriver!.latitude,
+  //         currentPositionOfDriver!.longitude);
+
+  //     controllerGoogleMap!
+  //         .animateCamera(CameraUpdate.newLatLng(positionLatLng));
+  //   });
+  // }
 
   void goOfflineNow() {
-    // Stop sharing live location updates to driver
-    Geofire.removeLocation(FirebaseAuth.instance.currentUser!.uid);
+    if (kIsWeb) {
+      // Web implementation
+      final DatabaseReference onlineDriversRef = FirebaseDatabase.instance
+          .ref()
+          .child('onlineDrivers')
+          .child(FirebaseAuth.instance.currentUser!.uid);
 
-    DatabaseReference newTripRequestReference = FirebaseDatabase.instance
-        .ref()
-        .child("drivers")
-        .child(FirebaseAuth.instance.currentUser!.uid)
-        .child("newTripStatus");
+      // Remove the driver's newTripStatus and location data
+      onlineDriversRef.onDisconnect();
+      onlineDriversRef.remove().then((_) {
+        final DatabaseReference ref = FirebaseDatabase.instance
+            .ref()
+            .child('drivers')
+            .child(FirebaseAuth.instance.currentUser!.uid)
+            .child('newTripStatus');
+        print("ref");
+        print(ref);
 
-    newTripRequestReference.onDisconnect();
-    newTripRequestReference.remove();
+        ref.remove().then((_) {
+          Provider.of<DriverStatusProvider>(context, listen: false)
+              .setOffline();
+        }).catchError((error) {
+          print("Failed to remove newTripStatus: $error");
+        });
+      }).catchError((error) {
+        print("Failed to remove online driver data: $error");
+      });
+    } else {
+      // Mobile implementation using GeoFire
+      Geofire.removeLocation(FirebaseAuth.instance.currentUser!.uid).then((_) {
+        DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+            .ref()
+            .child("drivers")
+            .child(FirebaseAuth.instance.currentUser!.uid)
+            .child("newTripStatus");
 
-    // Set the driver status to offline in Firebase Realtime Database
-    Provider.of<DriverStatusProvider>(context, listen: false).setOffline();
+        newTripRequestReference.remove().then((_) {
+          Provider.of<DriverStatusProvider>(context, listen: false)
+              .setOffline();
+        }).catchError((error) {
+          print("Failed to remove newTripStatus: $error");
+        });
+      }).catchError((error) {
+        print("Failed to remove location: $error");
+      });
+    }
   }
 
-  void initializePushNotificationSystem() {
+  Future<void> initializePushNotificationSystem() async {
+    print("entered into initializePushNotificationSystem");
     PushNotificationSystem notificationSystem = PushNotificationSystem();
+    print("before generate device registation token");
     notificationSystem.generateDeviceRegistrationToken();
+    print("after generate device registation token");
+    print("before startListeningForNewNotifications");
     notificationSystem.startListeningForNewNotifications(context);
+    print("after startListeningForNewNotifications");
   }
+
+//   Future<void> retrieveCurrentDriverInfo() async {
+//   print("Entered into retrieveCurrentDriverInfo");
+//   final user = FirebaseAuth.instance.currentUser;
+//   if (user == null) {
+//     print('No user logged in');
+//     return;
+//   }
+//   print("Fetching data for UID: ${user.uid}");
+
+//   DatabaseReference ref = FirebaseDatabase.instance
+//       .ref()
+//       .child("drivers")
+//       .child(user.uid);
+
+//   print(ref);
+
+//   try {
+//     DatabaseEvent event = await ref.once();
+
+//     if (event.snapshot.exists && event.snapshot.value != null) {
+//       final Map<String, dynamic> driverData = Map<String, dynamic>.from(event.snapshot.value as Map);
+//        driverName = driverData["name"] ?? 'Unknown';
+//        driverPhone = driverData["phone"] ?? 'Unknown';
+//        driverPhoto = driverData["photo"] ?? 'Unknown';
+//       Map<String, dynamic> carDetails = Map<String, dynamic>.from(driverData["car details"] as Map);
+//        carColor = carDetails["car-color"] ?? 'Unknown';
+//        carModel = carDetails["car-model"] ?? 'Unknown';
+//        carNumber = carDetails["car-number"] ?? 'Unknown';
+
+//       print("Driver Info: Name: $driverName, Phone: $driverPhone, Photo: $driverPhoto");
+//       print("Car Info: Color: $carColor, Model: $carModel, Number: $carNumber");
+//     } else {
+//       print("No data found for the driver with UID: ${user.uid}");
+//     }
+//   } catch (e) {
+//     print('Error fetching driver info: ${e.toString()}');
+//     if (e is FirebaseException) {
+//       print('Firebase Exception: ${e.code}');
+//     }
+//   }
+// }
 
   void retrieveCurrentDriverInfo() async {
-    await FirebaseDatabase.instance
-        .ref()
-        .child("drivers")
-        .child(FirebaseAuth.instance.currentUser!.uid)
-        .once()
-        .then((snap) {
-      driverName = (snap.snapshot.value as Map)["name"];
-      driverPhone = (snap.snapshot.value as Map)["phone"];
-      driverPhoto = (snap.snapshot.value as Map)["photo"];
-      carColor = (snap.snapshot.value as Map)["car details"]["car-color"];
-      carModel = (snap.snapshot.value as Map)["car details"]["car-model"];
-      carNumber = (snap.snapshot.value as Map)["car details"]["car-number"];
-    });
+    print("entered into retrieveCurrentDriverInfo");
+    try {
+      print("entered into try");
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('No user logged in');
+        return;
+      }
+      print("userid = ${user.uid}");
+      DatabaseReference ref = FirebaseDatabase.instance
+          .ref()
+          .child("drivers")
+          .child(FirebaseAuth.instance.currentUser!.uid);
 
-    initializePushNotificationSystem();
+      DatabaseEvent event = await ref.once();
+
+      print("DatabaseEvent event = $event");
+
+      DataSnapshot snap = event.snapshot;
+      print("DataSnapshot snap = $snap");
+      if (snap.value != null) {
+        print("into snap");
+        // Correctly casting the LinkedMap<Object?, Object?> to Map<String, dynamic>
+        final Map<String, dynamic>? driverData =
+            Map<String, dynamic>.from(snap.value as Map);
+
+        if (driverData != null) {
+          driverName = driverData["name"] ?? 'Unknown';
+          print(driverName);
+          driverPhone = driverData["phone"] ?? 'Unknown';
+          print(driverPhone);
+          driverPhoto = driverData["photo"] ?? 'Unknown';
+          print(driverPhoto);
+          carColor = driverData["car details"]?["car-color"] ?? 'Unknown';
+          print(carColor);
+          carModel = driverData["car details"]?["car-model"] ?? 'Unknown';
+          print(carModel);
+          carNumber = driverData["car details"]?["car-number"] ?? 'Unknown';
+          print(carNumber);
+        }
+
+        print("before initializePushNotificationSystem called");
+        initializePushNotificationSystem();
+        print("initializePushNotificationSystem ended");
+      } else {
+        print("No data found for the driver.");
+      }
+    } catch (e) {
+      print('Error in retrieveCurrentDriverInfo: $e');
+    }
   }
 
   void initializeStatus() async {
-    await Provider.of<DriverStatusProvider>(context, listen: false).setInitialStatus();
+    await Provider.of<DriverStatusProvider>(context, listen: false)
+        .setInitialStatus();
   }
 
   @override
   Widget build(BuildContext context) {
     final driverStatusProvider = Provider.of<DriverStatusProvider>(context);
+    if (kIsWeb) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text("Driver Map"),
+        ),
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              const Divider(
+                height: 1,
+                color: Colors.black,
+                thickness: 1,
+              ),
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // GOOGLE MAP
-          GoogleMap(
-            padding: EdgeInsets.only(top: 136),
-            mapType: MapType.normal,
-            myLocationButtonEnabled: true,
-            myLocationEnabled: true,
-            initialCameraPosition: googlePlexInitialPositon,
-            onMapCreated: (GoogleMapController mapController) {
-              controllerGoogleMap = mapController;
-              googleMapCompleterController.complete(controllerGoogleMap);
-
-              // Now it is safe to call getCurrentLiveLocationOfDriver()
-              getCurrentLiveLocationOfDriver();
-            },
-          ),
-
-          Container(
-            height: 136,
-            width: double.infinity,
-            color: Colors.black54,
-          ),
-
-          // GO ONLINE OR OFFLINE CONTAINER
-          Positioned(
-            top: 61,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isDismissible: false,
-                      builder: (BuildContext context) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(15),
-                                topRight: Radius.circular(15)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black45,
-                                blurRadius: 5,
-                                spreadRadius: 0.5,
-                                offset: Offset(0.7, 0.7),
-                              ),
-                            ],
-                          ),
-                          height: 221,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 18),
-                            child: Column(
-                              children: [
-                                const SizedBox(
-                                  height: 11,
-                                ),
-                                Text(
-                                  (!driverStatusProvider.isOnline)
-                                      ? "GO ONLINE NOW"
-                                      : "GO OFFLINE NOW",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black),
-                                ),
-                                const SizedBox(
-                                  height: 21,
-                                ),
-                                Text(
-                                  (!driverStatusProvider.isOnline)
-                                      ? "You are about to go online, you will become available to receive notification from users,"
-                                      : "You are about to go offline, you will stop receiving new trip requests from users.",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black),
-                                ),
-                                const SizedBox(
-                                  height: 21,
-                                ),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                        },
-                                        child: Text(
-                                          "BACK",
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(
-                                      height: 16,
-                                    ),
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                            backgroundColor: (!driverStatusProvider.isOnline)
-                                                ? Colors.green
-                                                : Colors.pink),
-                                        onPressed: () {
-                                          if (!driverStatusProvider.isOnline) {
-                                            // go online
-                                            goOnlineNow();
-
-                                            // get driver location updates
-                                            setAndGetLocationUpdates();
-
-                                            Navigator.pop(context);
-
-                                            // Update driver status in Firebase Realtime Database
-                                            driverStatusProvider.toggleOnlineStatus();
-                                          } else {
-                                            // go offline
-                                            goOfflineNow();
-
-                                            Navigator.pop(context);
-
-                                            // Update driver status in Firebase Realtime Database
-                                            driverStatusProvider.toggleOnlineStatus();
-                                          }
-                                        },
-                                        child: Text(
-                                          "CONFIRM",
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              ],
+              //header
+              Container(
+                color: Colors.white,
+                height: 160,
+                child: DrawerHeader(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                  ),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        "assets/images/avatarman.png",
+                        width: 60,
+                        height: 60,
+                      ),
+                      const SizedBox(
+                        width: 16,
+                      ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            userName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        );
-                      },
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: driverStatusProvider.isOnline ? Colors.pink : Colors.green),
-                  child: Text(driverStatusProvider.isOnline ? "GO OFFLINE NOW" : "GO ONLINE NOW"),
-                )
-              ],
-            ),
+                          const SizedBox(
+                            height: 4,
+                          ),
+                          const Text(
+                            "Profile",
+                            style: TextStyle(
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const Divider(
+                height: 1,
+                color: Colors.black,
+                thickness: 1,
+              ),
+
+              const SizedBox(
+                height: 10,
+              ),
+
+              //body
+              // GestureDetector(
+              //         onTap: () {
+              //           Navigator.push(
+              //             context,
+              //             MaterialPageRoute(
+              //                 builder: (context) => ProfilePage()),
+              //           );
+              //         },
+              //         child: ListTile(
+              //           leading: IconButton(
+              //             onPressed: () {
+              //               Navigator.push(
+              //                 context,
+              //                 MaterialPageRoute(
+              //                     builder: (context) => ProfilePage()),
+              //               );
+              //             },
+              //             icon: const Icon(
+              //               Icons.person,
+              //               color: Colors.black,
+              //             ),
+              //           ),
+              //           title: const Text(
+              //             "Personal details",
+              //             style: TextStyle(color: Colors.black),
+              //           ),
+              //         ),
+              //       ),
+            ],
           ),
-        ],
-      ),
-    );
+        ),
+        body: Stack(
+          children: [
+            GoogleMap(
+              padding: EdgeInsets.only(top: 136),
+              mapType: MapType.normal,
+              myLocationButtonEnabled: true,
+              myLocationEnabled: true,
+              initialCameraPosition: googlePlexInitialPositon,
+              onMapCreated: (GoogleMapController mapController) {
+                controllerGoogleMap = mapController;
+                googleMapCompleterController.complete(controllerGoogleMap);
+                // print("before checkWebPermissionsAndLoadMap");
+                // checkWebPermissionsAndLoadMap();
+                // print("after checkWebPermissionsAndLoadMap");
+                print("before retrieveCurrentDriverInfo called in initstate ");
+                retrieveCurrentDriverInfo();
+                print("after retrieveCurrentDriverInfo called in initstate ");
+                print(
+                    "before  getCurrentLiveLocationOfDriver called in initstate ");
+                getCurrentLiveLocationOfDriver();
+                print(
+                    "after getCurrentLiveLocationOfDriver called in initstate ");
+              },
+            ),
+            Container(
+              height: 136,
+              width: double.infinity,
+              color: Colors.black54,
+            ),
+            Positioned(
+              top: 61,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isDismissible: false,
+                        builder: (BuildContext context) {
+                          return Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(15),
+                                topRight: Radius.circular(15),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black45,
+                                  blurRadius: 5,
+                                  spreadRadius: 0.5,
+                                  offset: Offset(0.7, 0.7),
+                                ),
+                              ],
+                            ),
+                            height: 221,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 18),
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 11),
+                                  Text(
+                                    (!driverStatusProvider.isOnline)
+                                        ? "GO ONLINE NOW"
+                                        : "GO OFFLINE NOW",
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black),
+                                  ),
+                                  const SizedBox(height: 21),
+                                  Text(
+                                    (!driverStatusProvider.isOnline)
+                                        ? "You are about to go online, you will become available to receive notification from users,"
+                                        : "You are about to go offline, you will stop receiving new trip requests from users.",
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black),
+                                  ),
+                                  const SizedBox(height: 21),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                          },
+                                          child: const Text("BACK"),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                (!driverStatusProvider.isOnline)
+                                                    ? Colors.green
+                                                    : Colors.pink,
+                                          ),
+                                          onPressed: () {
+                                            if (!driverStatusProvider
+                                                .isOnline) {
+                                              print("goOnlineNow pressed");
+                                              goOnlineNow();
+                                              setAndGetLocationUpdates();
+                                              Navigator.pop(context);
+                                              driverStatusProvider
+                                                  .toggleOnlineStatus();
+                                            } else {
+                                              print("goOfflineNow pressed");
+                                              goOfflineNow();
+                                              Navigator.pop(context);
+                                              driverStatusProvider
+                                                  .toggleOnlineStatus();
+                                            }
+                                          },
+                                          child: const Text("CONFIRM"),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: driverStatusProvider.isOnline
+                          ? Colors.pink
+                          : Colors.green,
+                    ),
+                    child: Text(driverStatusProvider.isOnline
+                        ? "GO OFFLINE NOW"
+                        : "GO ONLINE NOW"),
+                  )
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Scaffold(
+        body: Stack(
+          children: [
+            GoogleMap(
+              padding: EdgeInsets.only(top: 136),
+              mapType: MapType.normal,
+              myLocationButtonEnabled: true,
+              myLocationEnabled: true,
+              initialCameraPosition: googlePlexInitialPositon,
+              onMapCreated: (GoogleMapController mapController) {
+                controllerGoogleMap = mapController;
+                googleMapCompleterController.complete(controllerGoogleMap);
+                getCurrentLiveLocationOfDriver();
+              },
+            ),
+            Container(
+              height: 136,
+              width: double.infinity,
+              color: Colors.black54,
+            ),
+            Positioned(
+              top: 61,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isDismissible: false,
+                        builder: (BuildContext context) {
+                          return Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(15),
+                                  topRight: Radius.circular(15)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black45,
+                                  blurRadius: 5,
+                                  spreadRadius: 0.5,
+                                  offset: Offset(0.7, 0.7),
+                                ),
+                              ],
+                            ),
+                            height: 221,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 18),
+                              child: Column(
+                                children: [
+                                  const SizedBox(
+                                    height: 11,
+                                  ),
+                                  Text(
+                                    (!driverStatusProvider.isOnline)
+                                        ? "GO ONLINE NOW"
+                                        : "GO OFFLINE NOW",
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black),
+                                  ),
+                                  const SizedBox(
+                                    height: 21,
+                                  ),
+                                  Text(
+                                    (!driverStatusProvider.isOnline)
+                                        ? "You are about to go online, you will become available to receive notification from users,"
+                                        : "You are about to go offline, you will stop receiving new trip requests from users.",
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black),
+                                  ),
+                                  const SizedBox(
+                                    height: 21,
+                                  ),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                          },
+                                          child: const Text(
+                                            "BACK",
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(
+                                        height: 16,
+                                      ),
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  (!driverStatusProvider
+                                                          .isOnline)
+                                                      ? Colors.green
+                                                      : Colors.pink),
+                                          onPressed: () {
+                                            if (!driverStatusProvider
+                                                .isOnline) {
+                                              print("goOnlineNow pressed");
+                                              goOnlineNow();
+                                              setAndGetLocationUpdates();
+                                              Navigator.pop(context);
+                                              driverStatusProvider
+                                                  .toggleOnlineStatus();
+                                            } else {
+                                              print("goOfflineNow pressed");
+                                              goOfflineNow();
+                                              Navigator.pop(context);
+                                              driverStatusProvider
+                                                  .toggleOnlineStatus();
+                                            }
+                                          },
+                                          child: Text(
+                                            "CONFIRM",
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: driverStatusProvider.isOnline
+                            ? Colors.pink
+                            : Colors.green),
+                    child: Text(driverStatusProvider.isOnline
+                        ? "GO OFFLINE NOW"
+                        : "GO ONLINE NOW"),
+                  )
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
@@ -329,6 +875,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         'currentPositionOfDriver', currentPositionOfDriver));
   }
 }
+ 
+
+
+
+
+
+ 
 
 
 
@@ -340,15 +893,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 // import 'dart:async';
 // import 'package:cccd/global/global_var.dart';
 // import 'package:cccd/methods/map_theme_methods.dart';
-// import 'package:cccd/push_notification.dart/push_notification_system.dart';
+// import 'package:cccd/pages/profile_page.dart';
+// import 'package:cccd/provider/driver_status_provider.dart';
+// import 'package:cccd/push_notification/push_notification_system.dart';
 // import 'package:firebase_auth/firebase_auth.dart';
 // import 'package:firebase_database/firebase_database.dart';
 // import 'package:flutter/foundation.dart';
 // import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
+
 // import 'package:flutter_geofire/flutter_geofire.dart';
 // import 'package:geolocator/geolocator.dart';
 // import 'package:google_maps_flutter/google_maps_flutter.dart';
+// import 'package:provider/provider.dart';
 
 // class HomePage extends StatefulWidget {
 //   const HomePage({Key? key}) : super(key: key);
@@ -357,149 +914,515 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 //   State<HomePage> createState() => _HomePageState();
 // }
 
-// class _HomePageState extends State<HomePage> {
+// class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 //   final Completer<GoogleMapController> googleMapCompleterController =
 //       Completer<GoogleMapController>();
 //   GoogleMapController? controllerGoogleMap;
 //   Position? currentPositionOfDriver;
-//   Color colorToShow = Colors.green;
-//   String titleToShow = "GO ONLINE NOW";
-//   bool isDriverAvailable = false;
-//   DatabaseReference? newTripRequestReference;
 //   MapThemeMethods themeMethods = MapThemeMethods();
-
-//   Future<void> getCurrentLiveLocationOfDriver() async {
-//   try {
-//     Position positionOfUser = await Geolocator.getCurrentPosition(
-//         desiredAccuracy: LocationAccuracy.bestForNavigation);
-//     currentPositionOfDriver = positionOfUser;
-//     driverCurrentPosition = currentPositionOfDriver;
-
-//     LatLng positionOfUserInLatLng = LatLng(
-//         currentPositionOfDriver!.latitude, currentPositionOfDriver!.longitude);
-//     CameraPosition cameraPosition =
-//         CameraPosition(target: positionOfUserInLatLng, zoom: 15);
-
-//     if (controllerGoogleMap != null) {
-//       controllerGoogleMap!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
-//     } else {
-//       print('controllerGoogleMap is null');
-//     }
-//   } catch (e) {
-//     print('Error in getting current location: $e');
-//   }
-// }
-
-
-//   goOnlineNow() {
-//     // all driver who are available for new trip requests
-//     Geofire.initialize("onlineDrivers");
-
-//     Geofire.setLocation(FirebaseAuth.instance.currentUser!.uid,
-//         currentPositionOfDriver!.latitude, currentPositionOfDriver!.longitude);
-
-//     newTripRequestReference = FirebaseDatabase.instance
-//         .ref()
-//         .child("drivers")
-//         .child(FirebaseAuth.instance.currentUser!.uid)
-//         .child("newTripStatus");
-
-//     newTripRequestReference!.set("waiting");
-//     newTripRequestReference!.onValue.listen((event) {});
-//   }
-
-//   setAndGetLocationUpdates() {
-//     positionStreamHomePage =
-//         Geolocator.getPositionStream().listen((Position position) {
-//       currentPositionOfDriver = position;
-
-//       if (isDriverAvailable == true) {
-//         Geofire.setLocation(
-//             FirebaseAuth.instance.currentUser!.uid,
-//             currentPositionOfDriver!.latitude,
-//             currentPositionOfDriver!.longitude);
-//       }
-
-//       LatLng positionLatLng = LatLng(currentPositionOfDriver!.latitude,
-//           currentPositionOfDriver!.longitude);
-
-//       controllerGoogleMap!
-//           .animateCamera(CameraUpdate.newLatLng(positionLatLng));
-//     });
-//   }
-
-//   goOfflineNow() {
-//     //Stop sharing live location updates to driver
-//     Geofire.removeLocation(FirebaseAuth.instance.currentUser!.uid);
-
-//     newTripRequestReference!.onDisconnect();
-//     newTripRequestReference!.remove();
-//     newTripRequestReference = null;
-//   }
-
-// // the below method is executed in initState()
-//   initializePushNotificationSystem() {
-//     PushNotificationSystem notificationSystem = PushNotificationSystem();
-//     notificationSystem.generateDeviceRegistrationToken();
-//     notificationSystem.startListeningForNewNotifications(context);
-//   }
-
-//   retriveCurrentDriverInfo() async {
-//     await FirebaseDatabase.instance
-//         .ref()
-//         .child("drivers")
-//         .child(FirebaseAuth.instance.currentUser!.uid)
-//         .once()
-//         .then((snap) {
-//       driverName = (snap.snapshot.value as Map)["name"];
-//       driverPhone = (snap.snapshot.value as Map)["phone"];
-//       driverPhoto = (snap.snapshot.value as Map)["photo"];
-//       carColor = (snap.snapshot.value as Map)["car details"]["car-color"];
-//       carModel = (snap.snapshot.value as Map)["car details"]["car-model"];
-//       carNumber = (snap.snapshot.value as Map)["car details"]["car-number"];
-//     });
-
-//     initializePushNotificationSystem();
-//   }
+//   bool _isUpdatingLocation = false;  // Add this at the class level
 
 //   @override
 //   void initState() {
 //     super.initState();
+//     WidgetsBinding.instance.addObserver(this);
+//     initializeStatus();
+//     retrieveCurrentDriverInfo();
 //     getCurrentLiveLocationOfDriver();
+//     // if (kIsWeb) {
+//     //   print("checkWebPermissionsAndAMap");
+//     //   checkWebPermissionsAndLoadMap();
+//     // } else {
+//     //   print("getCurrentLiveLocationOfDriver");
+//     //   getCurrentLiveLocationOfDriver();
+//     // }
+//   }
 
-//     retriveCurrentDriverInfo();
+//   @override
+//   void dispose() {
+//     WidgetsBinding.instance.removeObserver(this);
+//     super.dispose();
+//   }
+
+//   // @override
+//   // void didChangeAppLifecycleState(AppLifecycleState state) {
+//   //   super.didChangeAppLifecycleState(state);
+//   //   if (state == AppLifecycleState.paused) {
+//   //     // App is in background, do nothing to keep the status the same
+//   //   } else if (mounted) {
+//   //     if (state == AppLifecycleState.detached ||
+//   //         state == AppLifecycleState.inactive) {
+//   //       // App is being closed or terminated, set status to offline
+//   //       if (Provider.of<DriverStatusProvider>(context, listen: false)
+//   //           .isOnline) {
+//   //         // goOfflineNow();
+//   //       }
+//   //     }
+//   //   }
+//   // }
+
+//   Future<void> checkWebPermissionsAndLoadMap() async {
+//     await requestLocationPermissionWeb();
+//     if (currentPositionOfDriver != null && controllerGoogleMap != null) {
+//       setState(() {
+//         LatLng positionOfUserInLatLng = LatLng(
+//           currentPositionOfDriver!.latitude,
+//           currentPositionOfDriver!.longitude,
+//         );
+
+//         CameraPosition cameraPosition = CameraPosition(
+//           target: positionOfUserInLatLng,
+//           zoom: 15,
+//         );
+
+//         controllerGoogleMap!.animateCamera(
+//           CameraUpdate.newCameraPosition(cameraPosition),
+//         );
+//       });
+//     }
+//   }
+
+//   Future<void> requestLocationPermissionWeb() async {
+//     LocationPermission permission = await Geolocator.checkPermission();
+
+//     if (permission == LocationPermission.denied) {
+//       permission = await Geolocator.requestPermission();
+//       if (permission == LocationPermission.denied) {
+//         print('Location permission denied');
+//         return;
+//       }
+//     }
+
+//     if (permission == LocationPermission.deniedForever) {
+//       print('Location permissions are permanently denied');
+//       return;
+//     }
+
+//     if (permission == LocationPermission.whileInUse ||
+//         permission == LocationPermission.always) {
+//       Position position = await Geolocator.getCurrentPosition(
+//           desiredAccuracy: LocationAccuracy.high);
+//       setState(() {
+//         currentPositionOfDriver = position;
+//       });
+//     }
+//   }
+
+//   Future<void> getCurrentLiveLocationOfDriver() async {
+//     try {
+//       Position positionOfUser = await Geolocator.getCurrentPosition(
+//           desiredAccuracy: LocationAccuracy.high);
+//       currentPositionOfDriver = positionOfUser;
+//       driverCurrentPosition = currentPositionOfDriver;
+//       if (currentPositionOfDriver != null && controllerGoogleMap != null) {
+//         LatLng positionOfUserInLatLng = LatLng(
+//             currentPositionOfDriver!.latitude,
+//             currentPositionOfDriver!.longitude);
+//         CameraPosition cameraPosition =
+//             CameraPosition(target: positionOfUserInLatLng, zoom: 15);
+
+//         controllerGoogleMap!
+//             .animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+//       } else {
+//         print('controllerGoogleMap is null');
+//       }
+//     } catch (e) {
+//       print('Error in getting current location: $e');
+//     }
+//   }
+
+//   void goOnlineNow() {
+//     if (currentPositionOfDriver == null) {
+//       print('Cannot go online without a valid location');
+//       return;
+//     }
+
+//     // HomePage.dart - goOnlineNow
+//     if (kIsWeb) {
+//       DatabaseReference driversRef = FirebaseDatabase.instance
+//           .ref()
+//           .child('onlineDrivers')
+//           .child(FirebaseAuth.instance.currentUser!.uid);
+
+//       driversRef.update({
+//         'latitude': currentPositionOfDriver!.latitude,
+//         'longitude': currentPositionOfDriver!.longitude,
+//       }).then((_) {
+//         DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+//             .ref()
+//             .child("drivers")
+//             .child(FirebaseAuth.instance.currentUser!.uid)
+//             .child("newTripStatus");
+
+//         newTripRequestReference.set("waiting").then((_) {
+//           // Ensure listener is only set after the update is complete
+//           newTripRequestReference.onValue.listen((event) {
+//             if (event.snapshot.exists) {
+//               print("newTripStatus1 is still present: ${event.snapshot.value}");
+//             } else {
+//               print("newTripStatus has been removed!");
+//             }
+//           });
+//         });
+//       });
+
+//       // Web implementation without GeoFire
+//       // final DatabaseReference ref = FirebaseDatabase.instance
+//       //     .ref()
+//       //     .child('onlineDrivers')
+//       //     .child(uid);
+
+//       // ref.update({
+//       //   'latitude': currentPositionOfDriver!.latitude,
+//       //   'longitude': currentPositionOfDriver!.longitude,
+//       // });
+
+//       // DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+//       //     .ref()
+//       //     .child("drivers")
+//       //     .child(uid)
+//       //     .child("newTripStatus");
+
+//       // newTripRequestReference.child('newTripStatus').onValue.listen((event) {
+//       //   // Handle changes in newTripStatus
+//       //   String? newStatus = event.snapshot.value as String?;
+//       //   if (newStatus != null) {
+//       //     // Handle the status change accordingly
+//       //   }
+//       // });
+//     } else {
+//       // Mobile implementation using GeoFire
+//       Geofire.initialize("onlineDrivers");
+//       Geofire.setLocation(
+//           FirebaseAuth.instance.currentUser!.uid,
+//           currentPositionOfDriver!.latitude,
+//           currentPositionOfDriver!.longitude);
+
+//       DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+//           .ref()
+//           .child("drivers")
+//           .child(FirebaseAuth.instance.currentUser!.uid)
+//           .child("newTripStatus");
+
+//       newTripRequestReference.set("waiting");
+//       newTripRequestReference.onValue.listen((event) {
+//         // Handle changes in newTripStatus
+//       });
+//     }
+//   }
+
+
+// void setAndGetLocationUpdates() {
+//   print("setAndGetLocationsUpdates");
+//   Timer? debounceTimer;
+
+//   positionStreamHomePage =
+//       Geolocator.getPositionStream().listen((Position position) {
+//     if (!mounted || _isUpdatingLocation) return;
+
+//     // Debounce the location update to prevent rapid successive updates
+//     if (debounceTimer?.isActive ?? false) {
+//       debounceTimer?.cancel();
+//     }
+
+//     debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+//       if (_isUpdatingLocation) return; // Prevent overlapping updates
+//       _isUpdatingLocation = true;  // Lock
+
+//       try {
+//         setState(() {
+//           currentPositionOfDriver = position;
+//         });
+
+//         if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
+//           if (kIsWeb) {
+//             final DatabaseReference ref = FirebaseDatabase.instance
+//                 .ref()
+//                 .child('onlineDrivers')
+//                 .child(FirebaseAuth.instance.currentUser!.uid);
+//             await ref.update({
+//               'latitude': position.latitude,
+//               'longitude': position.longitude,
+//             });
+//           } else {
+//             await Geofire.setLocation(
+//                 FirebaseAuth.instance.currentUser!.uid,
+//                 currentPositionOfDriver!.latitude,
+//                 currentPositionOfDriver!.longitude);
+//           }
+//         }
+
+//         if (controllerGoogleMap != null) {
+//           LatLng positionLatLng = LatLng(currentPositionOfDriver!.latitude,
+//               currentPositionOfDriver!.longitude);
+
+//           controllerGoogleMap!
+//               .animateCamera(CameraUpdate.newLatLng(positionLatLng));
+//         }
+//       } finally {
+//         _isUpdatingLocation = false;  // Release lock
+//       }
+//     });
+//   });
+// }
+
+  
+  
+//   // // void setAndGetLocationUpdates() {
+//   // //   positionStreamHomePage =
+//   // //       Geolocator.getPositionStream().listen((Position position) {
+//   // //     currentPositionOfDriver = position;
+
+//   // //     if (Provider.of<DriverStatusProvider>(context, listen: false).isOnline) {
+//   // //       if (kIsWeb) {
+//   // //         // Web implementation
+//   // //         final DatabaseReference ref = FirebaseDatabase.instance
+//   // //             .ref()
+//   // //             .child('onlineDrivers')
+//   // //             .child(FirebaseAuth.instance.currentUser!.uid);
+
+//   // //         ref.update({
+//   // //           'latitude': position.latitude,
+//   // //           'longitude': position.longitude,
+//   // //         });
+//   // //       } else {
+//   // //         // Mobile implementation using GeoFire
+//   // //         Geofire.setLocation(
+//   // //             FirebaseAuth.instance.currentUser!.uid,
+//   // //             currentPositionOfDriver!.latitude,
+//   // //             currentPositionOfDriver!.longitude);
+//   // //       }
+//   // //     }
+
+//   //     LatLng positionLatLng = LatLng(currentPositionOfDriver!.latitude,
+//   //         currentPositionOfDriver!.longitude);
+
+//   //     controllerGoogleMap!
+//   //         .animateCamera(CameraUpdate.newLatLng(positionLatLng));
+//   //   });
+//   // }
+
+//   void goOfflineNow() {
+//     if (kIsWeb) {
+//       // Web implementation
+//       final DatabaseReference onlineDriversRef = FirebaseDatabase.instance
+//           .ref()
+//           .child('onlineDrivers')
+//           .child(FirebaseAuth.instance.currentUser!.uid);
+
+//       // Remove the driver's newTripStatus and location data
+//       onlineDriversRef.remove().then((_) {
+//         final DatabaseReference ref = FirebaseDatabase.instance
+//             .ref()
+//             .child('drivers')
+//             .child(FirebaseAuth.instance.currentUser!.uid)
+//             .child('newTripStatus');
+//         print("ref");
+//         print(ref);
+
+//         ref.remove().then((_) {
+//           Provider.of<DriverStatusProvider>(context, listen: false)
+//               .setOffline();
+//         }).catchError((error) {
+//           print("Failed to remove newTripStatus: $error");
+//         });
+//       }).catchError((error) {
+//         print("Failed to remove online driver data: $error");
+//       });
+//     } else {
+//       // Mobile implementation using GeoFire
+//       Geofire.removeLocation(FirebaseAuth.instance.currentUser!.uid).then((_) {
+//         DatabaseReference newTripRequestReference = FirebaseDatabase.instance
+//             .ref()
+//             .child("drivers")
+//             .child(FirebaseAuth.instance.currentUser!.uid)
+//             .child("newTripStatus");
+
+//         newTripRequestReference.remove().then((_) {
+//           Provider.of<DriverStatusProvider>(context, listen: false)
+//               .setOffline();
+//         }).catchError((error) {
+//           print("Failed to remove newTripStatus: $error");
+//         });
+//       }).catchError((error) {
+//         print("Failed to remove location: $error");
+//       });
+//     }
+//   }
+
+//   Future<void> initializePushNotificationSystem() async {
+//     if (mounted) {
+//       PushNotificationSystem notificationSystem = PushNotificationSystem();
+//       print("before generate device registation token");
+//       await notificationSystem.generateDeviceRegistrationToken();
+//       print("after generate device registation token");
+//       print("before startListeningForNewNotifications");
+//       notificationSystem.startListeningForNewNotifications(context);
+//       print("after startListeningForNewNotifications");
+//     }
+//   }
+
+//   void retrieveCurrentDriverInfo() async {
+//     try {
+//       DatabaseEvent event = await FirebaseDatabase.instance
+//           .ref()
+//           .child("drivers")
+//           .child(FirebaseAuth.instance.currentUser!.uid)
+//           .once();
+
+//       DataSnapshot snap = event.snapshot;
+//       if (snap.value != null) {
+//         // Correctly casting the LinkedMap<Object?, Object?> to Map<String, dynamic>
+//         final Map<String, dynamic>? driverData =
+//             Map<String, dynamic>.from(snap.value as Map);
+
+//         if (driverData != null) {
+//           driverName = driverData["name"] ?? 'Unknown';
+//           driverPhone = driverData["phone"] ?? 'Unknown';
+//           driverPhoto = driverData["photo"] ?? 'Unknown';
+//           carColor = driverData["car details"]?["car-color"] ?? 'Unknown';
+//           carModel = driverData["car details"]?["car-model"] ?? 'Unknown';
+//           carNumber = driverData["car details"]?["car-number"] ?? 'Unknown';
+//         }
+//       }
+
+//       await initializePushNotificationSystem();
+//       print("initializePushNotificationSystem ended");
+//     } catch (e) {
+//       print('Error in retrieveCurrentDriverInfo: $e');
+//     }
+//   }
+
+//   void initializeStatus() async {
+//     await Provider.of<DriverStatusProvider>(context, listen: false)
+//         .setInitialStatus();
 //   }
 
 //   @override
 //   Widget build(BuildContext context) {
-//     return Scaffold(
-//       body: Stack(
-//         children: [
-//           // GOOGLE MAP
-//           GoogleMap(
-//   padding: EdgeInsets.only(top: 136),
-//   mapType: MapType.normal,
-//   myLocationButtonEnabled: true,
-//   myLocationEnabled: true,
-//   initialCameraPosition: googlePlexInitialPositon,
-//   onMapCreated: (GoogleMapController mapController) {
-//     controllerGoogleMap = mapController;
-//     googleMapCompleterController.complete(controllerGoogleMap);
+//     final driverStatusProvider = Provider.of<DriverStatusProvider>(context);
+//     if (kIsWeb) {
+//       return Scaffold(
+//         appBar: AppBar(
+//           title: Text("Driver Map"),
+//         ),
+//         drawer: Drawer(
+//           child: ListView(
+//             padding: EdgeInsets.zero,
+//             children: [
+//               const Divider(
+//                 height: 1,
+//                 color: Colors.black,
+//                 thickness: 1,
+//               ),
 
-//     // Now it is safe to call getCurrentLiveLocationOfDriver()
-//     getCurrentLiveLocationOfDriver();
-//   },
-// ),
+//               //header
+//               Container(
+//                 color: Colors.white,
+//                 height: 160,
+//                 child: DrawerHeader(
+//                   decoration: const BoxDecoration(
+//                     color: Colors.white,
+//                   ),
+//                   child: Row(
+//                     children: [
+//                       Image.asset(
+//                         "assets/images/avatarman.png",
+//                         width: 60,
+//                         height: 60,
+//                       ),
+//                       const SizedBox(
+//                         width: 16,
+//                       ),
+//                       Column(
+//                         mainAxisAlignment: MainAxisAlignment.center,
+//                         children: [
+//                           Text(
+//                             userName,
+//                             style: const TextStyle(
+//                               fontSize: 16,
+//                               color: Colors.black,
+//                               fontWeight: FontWeight.bold,
+//                             ),
+//                           ),
+//                           const SizedBox(
+//                             height: 4,
+//                           ),
+//                           const Text(
+//                             "Profile",
+//                             style: TextStyle(
+//                               color: Colors.blue,
+//                             ),
+//                           ),
+//                         ],
+//                       ),
+//                     ],
+//                   ),
+//                 ),
+//               ),
 
+//               const Divider(
+//                 height: 1,
+//                 color: Colors.black,
+//                 thickness: 1,
+//               ),
 
-//           Container(
-//             height: 136,
-//             width: double.infinity,
-//             color: Colors.black54,
+//               const SizedBox(
+//                 height: 10,
+//               ),
+
+//               //body
+//               // GestureDetector(
+//               //         onTap: () {
+//               //           Navigator.push(
+//               //             context,
+//               //             MaterialPageRoute(
+//               //                 builder: (context) => ProfilePage()),
+//               //           );
+//               //         },
+//               //         child: ListTile(
+//               //           leading: IconButton(
+//               //             onPressed: () {
+//               //               Navigator.push(
+//               //                 context,
+//               //                 MaterialPageRoute(
+//               //                     builder: (context) => ProfilePage()),
+//               //               );
+//               //             },
+//               //             icon: const Icon(
+//               //               Icons.person,
+//               //               color: Colors.black,
+//               //             ),
+//               //           ),
+//               //           title: const Text(
+//               //             "Personal details",
+//               //             style: TextStyle(color: Colors.black),
+//               //           ),
+//               //         ),
+//               //       ),
+//             ],
 //           ),
-
-//           // GO ONLINE OR OFFLINE CONTAINER
-//           Positioned(
+//         ),
+//         body: Stack(
+//           children: [
+//             GoogleMap(
+//               padding: EdgeInsets.only(top: 136),
+//               mapType: MapType.normal,
+//               myLocationButtonEnabled: true,
+//               myLocationEnabled: true,
+//               initialCameraPosition: googlePlexInitialPositon,
+//               onMapCreated: (GoogleMapController mapController) {
+//                 controllerGoogleMap = mapController;
+//                 googleMapCompleterController.complete(controllerGoogleMap);
+//                 checkWebPermissionsAndLoadMap();
+//               },
+//             ),
+//             Container(
+//               height: 136,
+//               width: double.infinity,
+//               color: Colors.black54,
+//             ),
+//             Positioned(
 //               top: 61,
 //               left: 0,
 //               right: 0,
@@ -507,130 +1430,268 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 //                 mainAxisAlignment: MainAxisAlignment.center,
 //                 children: [
 //                   ElevatedButton(
-//                       onPressed: () {
-//                         showModalBottomSheet(
-//                             context: context,
-//                             isDismissible: false,
-//                             builder: (BuildContext context) {
-//                               return Container(
-//                                 decoration: BoxDecoration(
-//                                     color: Colors.white,
-//                                     borderRadius: BorderRadius.only(
-//                                         topLeft: Radius.circular(15),
-//                                         topRight: Radius.circular(15)),
-//                                     boxShadow: [
-//                                       BoxShadow(
-//                                         color: Colors.black45,
-//                                         blurRadius: 5,
-//                                         spreadRadius: 0.5,
-//                                         offset: Offset(0.7, 0.7),
-//                                       ),
-//                                     ]),
-//                                 height: 221,
-//                                 child: Padding(
-//                                   padding: EdgeInsets.symmetric(
-//                                       horizontal: 24, vertical: 18),
-//                                   child: Column(
-//                                     children: [
-//                                       const SizedBox(
-//                                         height: 11,
-//                                       ),
-//                                       Text(
-//                                         (!isDriverAvailable)
-//                                             ? "GO ONLINE NOW"
-//                                             : "GO OFFLINE NOW",
-//                                         textAlign: TextAlign.center,
-//                                         style: TextStyle(
-//                                             fontSize: 22,
-//                                             fontWeight: FontWeight.bold,
-//                                             color: Colors.black),
-//                                       ),
-//                                       const SizedBox(
-//                                         height: 21,
-//                                       ),
-//                                       Text(
-//                                         (!isDriverAvailable)
-//                                             ? "You are about to go online, you will become available to receive notification from users,"
-//                                             : "You are about to go offline, you will stop receiving new trip requests from users.",
-//                                         textAlign: TextAlign.center,
-//                                         style: TextStyle(
-//                                             fontSize: 12,
-//                                             fontWeight: FontWeight.bold,
-//                                             color: Colors.black),
-//                                       ),
-//                                       const SizedBox(
-//                                         height: 21,
-//                                       ),
-//                                       Row(
-//                                         children: [
-//                                           Expanded(
-//                                               child: ElevatedButton(
-//                                             onPressed: () {
-//                                               Navigator.pop(context);
-//                                             },
-//                                             child: Text(
-//                                               "BACK",
-//                                             ),
-//                                           )),
-//                                           const SizedBox(
-//                                             height: 16,
-//                                           ),
-//                                           Expanded(
-//                                               child: ElevatedButton(
-//                                             style: ElevatedButton.styleFrom(
-//                                                 backgroundColor: (titleToShow ==
-//                                                         "GO ONLINE NOW")
-//                                                     ? Colors.green
-//                                                     : Colors.pink),
-//                                             onPressed: () {
-//                                               if (!isDriverAvailable) {
-//                                                 // go online
-//                                                 goOnlineNow();
-
-//                                                 //get driver location updates
-//                                                 setAndGetLocationUpdates();
-
-//                                                 Navigator.pop(context);
-
-//                                                 setState(() {
-//                                                   colorToShow = Colors.pink;
-//                                                   titleToShow =
-//                                                       "GO OFFLINE NOW";
-//                                                   isDriverAvailable = true;
-//                                                 });
-//                                               } else {
-//                                                 // go offline
-//                                                 goOfflineNow();
-
-//                                                 Navigator.pop(context);
-
-//                                                 setState(() {
-//                                                   colorToShow = Colors.green;
-//                                                   titleToShow = "GO ONLINE NOW";
-//                                                   isDriverAvailable = false;
-//                                                 });
-//                                               }
-//                                             },
-//                                             child: Text(
-//                                               "CONFIRM",
-//                                             ),
-//                                           )),
-//                                         ],
-//                                       )
-//                                     ],
-//                                   ),
+//                     onPressed: () {
+//                       showModalBottomSheet(
+//                         context: context,
+//                         isDismissible: false,
+//                         builder: (BuildContext context) {
+//                           return Container(
+//                             decoration: const BoxDecoration(
+//                               color: Colors.white,
+//                               borderRadius: BorderRadius.only(
+//                                 topLeft: Radius.circular(15),
+//                                 topRight: Radius.circular(15),
+//                               ),
+//                               boxShadow: [
+//                                 BoxShadow(
+//                                   color: Colors.black45,
+//                                   blurRadius: 5,
+//                                   spreadRadius: 0.5,
+//                                   offset: Offset(0.7, 0.7),
 //                                 ),
-//                               );
-//                             });
-//                       },
-//                       style: ElevatedButton.styleFrom(
-//                           backgroundColor: colorToShow),
-//                       child: Text(titleToShow))
+//                               ],
+//                             ),
+//                             height: 221,
+//                             child: Padding(
+//                               padding: const EdgeInsets.symmetric(
+//                                   horizontal: 24, vertical: 18),
+//                               child: Column(
+//                                 children: [
+//                                   const SizedBox(height: 11),
+//                                   Text(
+//                                     (!driverStatusProvider.isOnline)
+//                                         ? "GO ONLINE NOW"
+//                                         : "GO OFFLINE NOW",
+//                                     textAlign: TextAlign.center,
+//                                     style: const TextStyle(
+//                                         fontSize: 22,
+//                                         fontWeight: FontWeight.bold,
+//                                         color: Colors.black),
+//                                   ),
+//                                   const SizedBox(height: 21),
+//                                   Text(
+//                                     (!driverStatusProvider.isOnline)
+//                                         ? "You are about to go online, you will become available to receive notification from users,"
+//                                         : "You are about to go offline, you will stop receiving new trip requests from users.",
+//                                     textAlign: TextAlign.center,
+//                                     style: const TextStyle(
+//                                         fontSize: 12,
+//                                         fontWeight: FontWeight.bold,
+//                                         color: Colors.black),
+//                                   ),
+//                                   const SizedBox(height: 21),
+//                                   Row(
+//                                     children: [
+//                                       Expanded(
+//                                         child: ElevatedButton(
+//                                           onPressed: () {
+//                                             Navigator.pop(context);
+//                                           },
+//                                           child: const Text("BACK"),
+//                                         ),
+//                                       ),
+//                                       const SizedBox(height: 16),
+//                                       Expanded(
+//                                         child: ElevatedButton(
+//                                           style: ElevatedButton.styleFrom(
+//                                             backgroundColor:
+//                                                 (!driverStatusProvider.isOnline)
+//                                                     ? Colors.green
+//                                                     : Colors.pink,
+//                                           ),
+//                                           onPressed: () {
+//                                             if (!driverStatusProvider
+//                                                 .isOnline) {
+//                                               goOnlineNow();
+//                                               setAndGetLocationUpdates();
+//                                               Navigator.pop(context);
+//                                               driverStatusProvider
+//                                                   .toggleOnlineStatus();
+//                                             } else {
+//                                               goOfflineNow();
+//                                               Navigator.pop(context);
+//                                               driverStatusProvider
+//                                                   .toggleOnlineStatus();
+//                                             }
+//                                           },
+//                                           child: const Text("CONFIRM"),
+//                                         ),
+//                                       ),
+//                                     ],
+//                                   )
+//                                 ],
+//                               ),
+//                             ),
+//                           );
+//                         },
+//                       );
+//                     },
+//                     style: ElevatedButton.styleFrom(
+//                       backgroundColor: driverStatusProvider.isOnline
+//                           ? Colors.pink
+//                           : Colors.green,
+//                     ),
+//                     child: Text(driverStatusProvider.isOnline
+//                         ? "GO OFFLINE NOW"
+//                         : "GO ONLINE NOW"),
+//                   )
 //                 ],
-//               ))
-//         ],
-//       ),
-//     );
+//               ),
+//             ),
+//           ],
+//         ),
+//       );
+//     } else {
+//       return Scaffold(
+//         body: Stack(
+//           children: [
+//             GoogleMap(
+//               padding: EdgeInsets.only(top: 136),
+//               mapType: MapType.normal,
+//               myLocationButtonEnabled: true,
+//               myLocationEnabled: true,
+//               initialCameraPosition: googlePlexInitialPositon,
+//               onMapCreated: (GoogleMapController mapController) {
+//                 controllerGoogleMap = mapController;
+//                 googleMapCompleterController.complete(controllerGoogleMap);
+//                 getCurrentLiveLocationOfDriver();
+//               },
+//             ),
+//             Container(
+//               height: 136,
+//               width: double.infinity,
+//               color: Colors.black54,
+//             ),
+//             Positioned(
+//               top: 61,
+//               left: 0,
+//               right: 0,
+//               child: Row(
+//                 mainAxisAlignment: MainAxisAlignment.center,
+//                 children: [
+//                   ElevatedButton(
+//                     onPressed: () {
+//                       showModalBottomSheet(
+//                         context: context,
+//                         isDismissible: false,
+//                         builder: (BuildContext context) {
+//                           return Container(
+//                             decoration: const BoxDecoration(
+//                               color: Colors.white,
+//                               borderRadius: BorderRadius.only(
+//                                   topLeft: Radius.circular(15),
+//                                   topRight: Radius.circular(15)),
+//                               boxShadow: [
+//                                 BoxShadow(
+//                                   color: Colors.black45,
+//                                   blurRadius: 5,
+//                                   spreadRadius: 0.5,
+//                                   offset: Offset(0.7, 0.7),
+//                                 ),
+//                               ],
+//                             ),
+//                             height: 221,
+//                             child: Padding(
+//                               padding: const EdgeInsets.symmetric(
+//                                   horizontal: 24, vertical: 18),
+//                               child: Column(
+//                                 children: [
+//                                   const SizedBox(
+//                                     height: 11,
+//                                   ),
+//                                   Text(
+//                                     (!driverStatusProvider.isOnline)
+//                                         ? "GO ONLINE NOW"
+//                                         : "GO OFFLINE NOW",
+//                                     textAlign: TextAlign.center,
+//                                     style: const TextStyle(
+//                                         fontSize: 22,
+//                                         fontWeight: FontWeight.bold,
+//                                         color: Colors.black),
+//                                   ),
+//                                   const SizedBox(
+//                                     height: 21,
+//                                   ),
+//                                   Text(
+//                                     (!driverStatusProvider.isOnline)
+//                                         ? "You are about to go online, you will become available to receive notification from users,"
+//                                         : "You are about to go offline, you will stop receiving new trip requests from users.",
+//                                     textAlign: TextAlign.center,
+//                                     style: const TextStyle(
+//                                         fontSize: 12,
+//                                         fontWeight: FontWeight.bold,
+//                                         color: Colors.black),
+//                                   ),
+//                                   const SizedBox(
+//                                     height: 21,
+//                                   ),
+//                                   Row(
+//                                     children: [
+//                                       Expanded(
+//                                         child: ElevatedButton(
+//                                           onPressed: () {
+//                                             Navigator.pop(context);
+//                                           },
+//                                           child: const Text(
+//                                             "BACK",
+//                                           ),
+//                                         ),
+//                                       ),
+//                                       const SizedBox(
+//                                         height: 16,
+//                                       ),
+//                                       Expanded(
+//                                         child: ElevatedButton(
+//                                           style: ElevatedButton.styleFrom(
+//                                               backgroundColor:
+//                                                   (!driverStatusProvider
+//                                                           .isOnline)
+//                                                       ? Colors.green
+//                                                       : Colors.pink),
+//                                           onPressed: () {
+//                                             if (!driverStatusProvider
+//                                                 .isOnline) {
+//                                               goOnlineNow();
+//                                               setAndGetLocationUpdates();
+//                                               Navigator.pop(context);
+//                                               driverStatusProvider
+//                                                   .toggleOnlineStatus();
+//                                             } else {
+//                                               goOfflineNow();
+//                                               Navigator.pop(context);
+//                                               driverStatusProvider
+//                                                   .toggleOnlineStatus();
+//                                             }
+//                                           },
+//                                           child: Text(
+//                                             "CONFIRM",
+//                                           ),
+//                                         ),
+//                                       ),
+//                                     ],
+//                                   )
+//                                 ],
+//                               ),
+//                             ),
+//                           );
+//                         },
+//                       );
+//                     },
+//                     style: ElevatedButton.styleFrom(
+//                         backgroundColor: driverStatusProvider.isOnline
+//                             ? Colors.pink
+//                             : Colors.green),
+//                     child: Text(driverStatusProvider.isOnline
+//                         ? "GO OFFLINE NOW"
+//                         : "GO ONLINE NOW"),
+//                   )
+//                 ],
+//               ),
+//             ),
+//           ],
+//         ),
+//       );
+//     }
 //   }
 
 //   @override

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:cccd/global/global_var.dart';
 import 'package:cccd/models/direction_details.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_geofire/flutter_geofire.dart';
@@ -15,7 +17,7 @@ class CommonMethods {
     if (connectionResult != ConnectivityResult.mobile &&
         connectionResult != ConnectivityResult.wifi) {
       if (!context.mounted) return;
-      displaySnackbar('check internet connection', context);
+      displaySnackbar('Check internet connection', context);
     }
   }
 
@@ -24,6 +26,7 @@ class CommonMethods {
     ScaffoldMessenger.of(context).showSnackBar(snackbar);
   }
 
+<<<<<<< HEAD
   turnOffLocationUpdatesForHomepage() {
     if (positionStreamHomePage != null) {
       positionStreamHomePage!.pause();
@@ -56,10 +59,65 @@ class CommonMethods {
       }
     } else {
       print('currentUser is null');
+=======
+  void turnOffLocationUpdatesForHomepage() {
+    print("entered into turnOffLocationUpdatesForHomepage");
+    if (positionStreamHomePage != null) {
+      print("positionStreamHomePage paused");
+      positionStreamHomePage!.pause();
+    }
+    else{
+      print('positionStreamHomePage is null');
+    }
+
+    if (FirebaseAuth.instance.currentUser != null) {
+      final String uid = FirebaseAuth.instance.currentUser!.uid;
+
+      if (kIsWeb) {
+        // Web implementation
+        final DatabaseReference onlineDriversRef =
+            FirebaseDatabase.instance.ref().child('onlineDrivers').child(uid);
+
+        // Remove the driver's location data
+        onlineDriversRef.remove();
+        print("onlineDriversRef removed");
+        
+      } else {
+        // Mobile implementation using GeoFire
+        Geofire.removeLocation(uid);
+      }
     }
   }
 
-  static sendRequestToAPI(String apiUrl) async {
+  void turnOnLocationUpdatesForHomepage() {
+    if (positionStreamHomePage != null && driverCurrentPosition != null) {
+      positionStreamHomePage!.resume();
+      print("positionStreamHomePage resumed");
+      final String uid = FirebaseAuth.instance.currentUser!.uid;
+
+      if (kIsWeb) {
+        // Web implementation
+        final DatabaseReference onlineDriversRef =
+            FirebaseDatabase.instance.ref().child('onlineDrivers').child(uid);
+
+        // Set the driver's location data
+        onlineDriversRef.set({
+          'latitude': driverCurrentPosition!.latitude,
+          'longitude': driverCurrentPosition!.longitude,
+        });
+      } else {
+        // Mobile implementation using GeoFire
+        Geofire.setLocation(uid, driverCurrentPosition!.latitude,
+            driverCurrentPosition!.longitude);
+      }
+    } else {
+      // Handle the case where positionStreamHomePage or driverCurrentPosition is null
+      print('Error: positionStreamHomePage or driverCurrentPosition is null');
+>>>>>>> web
+    }
+  }
+
+  static Future sendRequestToAPI(String apiUrl) async {
     http.Response responseFromAPI = await http.get(Uri.parse(apiUrl));
 
     try {
@@ -81,24 +139,24 @@ class CommonMethods {
     String urlDirectionsAPI =
         "https://maps.googleapis.com/maps/api/directions/json?destination=${destination.latitude},${destination.longitude}&origin=${source.latitude},${source.longitude}&mode=driving&key=$googleMapKey";
 
-    var responceFromDirectionsAPI = await sendRequestToAPI(urlDirectionsAPI);
+    var responseFromDirectionsAPI = await sendRequestToAPI(urlDirectionsAPI);
 
-    if (responceFromDirectionsAPI == "error") {
+    if (responseFromDirectionsAPI == "error") {
       return null;
     }
 
     DirectionDetails detailsModel = DirectionDetails();
     detailsModel.distanceTextString =
-        responceFromDirectionsAPI["routes"][0]["legs"][0]["distance"]["text"];
+        responseFromDirectionsAPI["routes"][0]["legs"][0]["distance"]["text"];
     detailsModel.distanceValueDigits =
-        responceFromDirectionsAPI["routes"][0]["legs"][0]["distance"]["value"];
+        responseFromDirectionsAPI["routes"][0]["legs"][0]["distance"]["value"];
     detailsModel.durationTextString =
-        responceFromDirectionsAPI["routes"][0]["legs"][0]["duration"]["text"];
+        responseFromDirectionsAPI["routes"][0]["legs"][0]["duration"]["text"];
     detailsModel.durationValueDigits =
-        responceFromDirectionsAPI["routes"][0]["legs"][0]["duration"]["value"];
+        responseFromDirectionsAPI["routes"][0]["legs"][0]["duration"]["value"];
 
     detailsModel.encodePoints =
-        responceFromDirectionsAPI["routes"][0]["overview_polyline"]["points"];
+        responseFromDirectionsAPI["routes"][0]["overview_polyline"]["points"];
 
     return detailsModel;
   }
@@ -114,10 +172,14 @@ class CommonMethods {
     double totalDurationSpendFareAmount =
         (directionDetails.durationValueDigits! / 60) * durationPerMinuteAmount;
 
+<<<<<<< HEAD
     double totalOverAllFareAmount = baseFareAmount +
+=======
+    double totalOverallFareAmount = baseFareAmount +
+>>>>>>> web
         totalDistanceTravelFareAmount +
         totalDurationSpendFareAmount;
 
-    return totalOverAllFareAmount.toStringAsFixed(1);
+    return totalOverallFareAmount.toStringAsFixed(1);
   }
 }
