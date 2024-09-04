@@ -476,10 +476,17 @@ packages:
     dependency: transitive
     description:
       name: image_picker_android
+<<<<<<< HEAD
       sha256: "4161e1f843d8480d2e9025ee22411778c3c9eb7e40076dcf2da23d8242b7b51c"
       url: "https://pub.dev"
     source: hosted
     version: "0.8.12+3"
+=======
+      sha256: c0a6763d50b354793d0192afd0a12560b823147d3ded7c6b77daf658fa05cc85
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.8.12+13"
+>>>>>>> e3541c5 (debugged)
   image_picker_for_web:
     dependency: transitive
     description:
@@ -837,6 +844,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
+  synchronized:
+    dependency: "direct main"
+    description:
+      name: synchronized
+      sha256: a824e842b8a054f91a728b783c177c1e4731f6b124f9192468457a8913371255
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.2.0"
   term_glyph:
     dependency: transitive
     description:
@@ -873,10 +888,17 @@ packages:
     dependency: transitive
     description:
       name: url_launcher_android
+<<<<<<< HEAD
       sha256: ceb2625f0c24ade6ef6778d1de0b2e44f2db71fded235eb52295247feba8c5cf
       url: "https://pub.dev"
     source: hosted
     version: "6.3.3"
+=======
+      sha256: e35a698ac302dd68e41f73250bd9517fe3ab5fa4f18fe4647a0872db61bacbab
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.3.10"
+>>>>>>> e3541c5 (debugged)
   url_launcher_ios:
     dependency: transitive
     description:
@@ -974,5 +996,5 @@ packages:
     source: hosted
     version: "6.5.0"
 sdks:
-  dart: ">=3.4.3 <4.0.0"
-  flutter: ">=3.22.0"
+  dart: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"

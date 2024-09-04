@@ -43,6 +43,21 @@ class _NewTripPageState extends State<NewTripPage> {
   Color buttonColor = Colors.indigoAccent;
   CommonMethods cmethods = CommonMethods();
 
+<<<<<<< HEAD
+=======
+  @override
+  void initState() {
+    print("entered into initState of NewTripPage");
+    super.initState();
+    // if (mounted) {
+    print("before saveDriverDataToTripInfo in initState");
+    saveDriverDataToTripInfo();
+    print("after saveDriverDataToTripInfo in initState");
+    // }
+    print("initState exited");
+  }
+
+>>>>>>> e3541c5 (debugged)
   makeMarker() {
     if (carMarkerIcon == null) {
       ImageConfiguration configuration =
@@ -174,8 +189,14 @@ class _NewTripPageState extends State<NewTripPage> {
   }
 
   getLiveLocationUpdatesOfDriver() {
+<<<<<<< HEAD
     positionStreamNewTripPage =
         Geolocator.getPositionStream().listen((Position positionDriver) {
+=======
+    print("entered into getLiveLocationUpdatesOfDriver");
+    positionStreamNewTripPage =
+        Geolocator.getPositionStream().listen((Position positionDriver) async {
+>>>>>>> e3541c5 (debugged)
       // Update driver's current position
       driverCurrentPosition = positionDriver;
       LatLng driverCurrentPositionLatLng = LatLng(
@@ -210,7 +231,14 @@ class _NewTripPageState extends State<NewTripPage> {
         "longitude": driverCurrentPosition!.longitude,
       };
 
+<<<<<<< HEAD
       FirebaseDatabase.instance
+=======
+      print(updatedLocationOfDriver);
+      print(updatedLocationOfDriver);
+
+      await FirebaseDatabase.instance
+>>>>>>> e3541c5 (debugged)
           .ref()
           .child("tripRequests")
           .child(widget.newTripDetailInfo!.tripID!)
@@ -273,11 +301,21 @@ class _NewTripPageState extends State<NewTripPage> {
     String fareAmount =
         (cmethods.calculateFareAmount(directionDetailsEndTripInfo!)).toString();
 
+<<<<<<< HEAD
+=======
+    await FirebaseDatabase.instance
+        .ref()
+        .child("tripRequests")
+        .child(widget.newTripDetailInfo!.tripID!)
+        .child("fareAmount")
+        .set(fareAmount);
+>>>>>>> e3541c5 (debugged)
 
     await FirebaseDatabase.instance
         .ref()
         .child("tripRequests")
         .child(widget.newTripDetailInfo!.tripID!)
+<<<<<<< HEAD
         .child("fareAmount")
         .set(fareAmount);
 
@@ -302,6 +340,17 @@ class _NewTripPageState extends State<NewTripPage> {
 
     // Save fare amount to driver total earnings
     saveFareAmountToDriverTotalEarnings(fareAmount);
+=======
+        .child("status")
+        .set("ended");
+
+    positionStreamNewTripPage!.cancel();
+
+    displayPaymentDialog(fareAmount);
+
+    saveFareAmountToDriverTotalEarnings(fareAmount);
+    print("endTripNow exited");
+>>>>>>> e3541c5 (debugged)
   }
 
   displayPaymentDialog(fareAmount) {
@@ -319,6 +368,7 @@ class _NewTripPageState extends State<NewTripPage> {
         .child(FirebaseAuth.instance.currentUser!.uid)
         .child("earnings");
 
+<<<<<<< HEAD
     await driverEarningsRef.once().then((snap) {
       if (snap.snapshot.value != null) {
         double previousTotalEarnings =
@@ -332,7 +382,63 @@ class _NewTripPageState extends State<NewTripPage> {
         driverEarningsRef.set(fareAmount);
       }
     });
+=======
+    try {
+      driverEarningsRef.runTransaction((mutableData) {
+        double currentEarnings = 0.0;
+        if (mutableData != null) {
+          try {
+            currentEarnings = double.parse(mutableData.toString());
+          } catch (e) {
+            print("Error parsing current earnings: $e");
+          }
+        }
+
+        double fareAmountForTrip = 0.0;
+        try {
+          fareAmountForTrip = double.parse(fareAmount);
+        } catch (e) {
+          print("Error parsing fare amount: $e");
+        }
+
+        mutableData = (currentEarnings + fareAmountForTrip).toString();
+        return Transaction.success(mutableData);
+      }).then((transactionResult) {
+        if (transactionResult.committed) {
+          print("Earnings updated successfully");
+        } else {
+          print("Failed to update earnings");
+        }
+      }).catchError((error) {
+        print("Error updating earnings: $error");
+      });
+    } catch (e) {
+      print("An error occurred during the transaction: $e");
+    }
+>>>>>>> e3541c5 (debugged)
   }
+
+  // saveFareAmountToDriverTotalEarnings(String fareAmount) async {
+  //   DatabaseReference driverEarningsRef = FirebaseDatabase.instance
+  //       .ref()
+  //       .child("drivers")
+  //       .child(FirebaseAuth.instance.currentUser!.uid)
+  //       .child("earnings");
+
+  //   await driverEarningsRef.once().then((snap)  {
+  //   if (snap.snapshot.value != null) {
+  //     double previousTotalEarnings =
+  //         double.parse(snap.snapshot.value.toString());
+  //     double fareAmountForTrip = double.parse(fareAmount);
+
+  //     double newTotalEarnings = previousTotalEarnings + fareAmountForTrip;
+
+  //      driverEarningsRef.set(newTotalEarnings);
+  //   } else {
+  //      driverEarningsRef.set(fareAmount);
+  //   }
+  // });
+  // }
 
   saveDriverDataToTripInfo() async {
     Map<String, dynamic> driverDataMap = {
@@ -364,9 +470,16 @@ class _NewTripPageState extends State<NewTripPage> {
   }
 
   @override
+<<<<<<< HEAD
   void initState() {
     super.initState();
     saveDriverDataToTripInfo();
+=======
+  void dispose() {
+    positionStreamNewTripPage
+        ?.cancel(); // Cancel the subscription when the widget is disposed
+    super.dispose();
+>>>>>>> e3541c5 (debugged)
   }
 
   @override
@@ -408,6 +521,7 @@ class _NewTripPageState extends State<NewTripPage> {
           },
         ),
 
+<<<<<<< HEAD
         // TRIP DETAILS
         Positioned(
           left: 0,
@@ -419,6 +533,34 @@ class _NewTripPageState extends State<NewTripPage> {
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(17),
                 topRight: Radius.circular(17),
+=======
+              print("before getLiveLocationUpdatesOfDriver called");
+              getLiveLocationUpdatesOfDriver();
+              print("after getLiveLocationUpdatesOfDriver called");
+            },
+          ),
+
+          // TRIP DETAILS
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(17),
+                  topRight: Radius.circular(17),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 17,
+                    spreadRadius: 0.5,
+                    offset: Offset(0.7, 0.7),
+                  ),
+                ],
+>>>>>>> e3541c5 (debugged)
               ),
               boxShadow: [
                 BoxShadow(
